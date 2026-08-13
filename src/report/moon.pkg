@@ -1,0 +1,15 @@
+import {
+  "moonbitlang/moon_cove/common",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/int",
+  "moonbitlang/core/string",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/io",
+  "moonbitlang/x/path",
+}
+
+import {
+  "moonbitlang/async",
+} for "wbtest"
+
+supported_targets = "+native"

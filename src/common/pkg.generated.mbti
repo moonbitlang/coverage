@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitlang/moon_cove/common"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub let coverage_file_identifier : String
+
+// Errors
+
+// Types and methods
+pub(all) struct InstrumentedFile {
+  filename : String
+  points : Array[Int64]
+  counts : Array[Int64]
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+pub type Coverage = Map[String, InstrumentedFile]
+
+// Traits
