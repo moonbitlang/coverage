@@ -6,7 +6,7 @@ import {
 }
 
 // Values
-pub async fn output(writer~ : &@io.Writer, per_file~ : Bool, coverage_files~ : ArrayView[String], coverage_paths~ : ArrayView[String], expect~ : ArrayView[String], do_not_expect~ : ArrayView[String]) -> Unit
+pub async fn[W : @io.Writer] output(writer~ : W, per_file~ : Bool, coverage_files~ : ArrayView[String], coverage_paths~ : ArrayView[String], expect~ : ArrayView[String], do_not_expect~ : ArrayView[String]) -> Unit
 
 // Errors
 

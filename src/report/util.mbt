@@ -26,7 +26,7 @@ async fn find_dune_workspace_root(start? : StringView = ".") -> String? {
 ///|
 /// Mirror OCaml's `Filename.is_implicit` using the active platform's path rules.
 fn is_implicit_filename(filename : String) -> Bool {
-  guard @path.Path(filename).is_absolute() else { false }
+  guard !@path.Path(filename).is_absolute() else { false }
   let explicit_from_current = filename.has_prefix("./") ||
     (@path.sep == '\\' && filename.has_prefix(".\\"))
   let explicit_from_parent = filename.has_prefix("../") ||

@@ -1,0 +1,19 @@
+import {
+  "moonbitlang/moon_cove/report",
+  "moonbitlang/core/json",
+  "moonbitlang/core/int64",
+  "moonbitlang/core/string",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/io",
+  "moonbitlang/x/crypto",
+}
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/io",
+  "moonbitlang/core/json",
+  "moonbitlang/x/path",
+} for "test"
+
+supported_targets = "+native"

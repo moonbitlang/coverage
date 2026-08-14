@@ -8,6 +8,8 @@ import {
 // Values
 pub async fn find_source_file(source_roots~ : ArrayView[String], ignore_missing_files~ : Bool, filename~ : String) -> String?
 
+pub fn line_counts(BytesView, points~ : ArrayView[Int64], counts~ : ArrayView[Int64]) -> Array[Int64?]
+
 pub async fn load_coverage(coverage_files~ : ArrayView[String], coverage_paths~ : ArrayView[String], expect~ : ArrayView[String], do_not_expect~ : ArrayView[String]) -> Map[String, @common.InstrumentedFile]
 
 // Errors

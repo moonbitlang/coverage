@@ -66,8 +66,8 @@ fn render(coverage : @common.Coverage, per_file~ : Bool) -> String {
 ///
 /// The writer is explicit so callers choose stdout, a file, or an in-memory
 /// destination without changing the report logic.
-pub async fn output(
-  writer~ : &@io.Writer,
+pub async fn[W : @io.Writer] output(
+  writer~ : W,
   per_file~ : Bool,
   coverage_files~ : ArrayView[String],
   coverage_paths~ : ArrayView[String],
