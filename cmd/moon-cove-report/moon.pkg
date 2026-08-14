@@ -1,0 +1,12 @@
+import {
+  "moonbitlang/moon_cove/report/html",
+  "moonbitlang/core/argparse",
+  "moonbitlang/core/string",
+  "moonbitlang/async",
+  "moonbitlang/async/stdio",
+  "moonbitlang/x/sys",
+}
+
+supported_targets = "+native"
+
+pkgtype(kind: "executable")

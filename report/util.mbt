@@ -1,4 +1,14 @@
 ///|
+/// Create a directory and any missing parents, leaving an existing path alone.
+/// This mirrors Bisect's `Util.mkdirs` rather than async/fs `mkdir`, whose
+/// `recursive` option only creates missing parents.
+pub async fn mkdirs(directory : StringView) -> Unit {
+  if !@fs.exists(directory) {
+    @fs.mkdir(directory, permission=0o755, recursive=true)
+  }
+}
+
+///|
 /// Return the outermost ancestor containing a `dune-workspace` file.
 /// TODO: Support moon.mod
 async fn find_dune_workspace_root(start? : StringView = ".") -> String? {

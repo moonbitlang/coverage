@@ -1,0 +1,44 @@
+import {
+  "moonbitlang/moon_cove/common",
+  "moonbitlang/moon_cove/report",
+  "moonbitlang/core/array",
+  "moonbitlang/core/buffer",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/int",
+  "moonbitlang/core/int64",
+  "moonbitlang/core/string",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/io",
+  "moonbitlang/x/path",
+}
+
+import {
+  "moonbitlang/async",
+} for "test"
+
+supported_targets = "+native"
+
+options(
+  "pre-build": [
+    {
+      "command": ":embed -i $input -o $output --name coverage_css --text",
+      "input": "assets/coverage.css",
+      "output": "coverage_css.generated.mbt",
+    },
+    {
+      "command": ":embed -i $input -o $output --name inria_sans_regular --binary",
+      "input": "assets/inria-sans-regular.woff2",
+      "output": "inria_sans_regular.generated.mbt",
+    },
+    {
+      "command": ":embed -i $input -o $output --name inria_sans_bold --binary",
+      "input": "assets/inria-sans-700.woff2",
+      "output": "inria_sans_bold.generated.mbt",
+    },
+    {
+      "command": ":embed -i $input -o $output --name inria_sans_license --text",
+      "input": "assets/OFL-1.1.txt",
+      "output": "inria_sans_license.generated.mbt",
+    },
+  ],
+)

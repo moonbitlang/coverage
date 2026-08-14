@@ -4,3 +4,5 @@ target/
 target
 .mooncakes/
 .moonagent/
+report/html/*.generated.mbt
+demo/

@@ -12,6 +12,8 @@ pub fn line_counts(BytesView, points~ : ArrayView[Int64], counts~ : ArrayView[In
 
 pub async fn load_coverage(coverage_files~ : ArrayView[String], coverage_paths~ : ArrayView[String], expect~ : ArrayView[String], do_not_expect~ : ArrayView[String]) -> Map[String, @common.InstrumentedFile]
 
+pub async fn mkdirs(StringView) -> Unit
+
 // Errors
 
 // Types and methods
