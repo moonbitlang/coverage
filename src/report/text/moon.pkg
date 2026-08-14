@@ -1,21 +1,19 @@
 import {
   "moonbitlang/moon_cove/common",
-  "moonbitlang/core/encoding/utf8",
-  "moonbitlang/core/env",
+  "moonbitlang/moon_cove/report",
+  "moonbitlang/core/array",
+  "moonbitlang/core/cmp",
   "moonbitlang/core/int",
   "moonbitlang/core/int64",
   "moonbitlang/core/string",
-  "moonbitlang/async/fs",
   "moonbitlang/async/io",
-  "moonbitlang/x/path",
 }
 
 import {
   "moonbitlang/async",
-} for "wbtest"
-
-import {
-  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/io",
+  "moonbitlang/x/path",
 } for "test"
 
 supported_targets = "+native"

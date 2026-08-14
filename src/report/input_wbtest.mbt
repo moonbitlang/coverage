@@ -93,25 +93,35 @@ test "decode accepts trailing bytes like Bisect's reader" {
 
 ///|
 async test "read one coverage file" {
-  let path = "_build/read-one.coverage"
-  @fs.write_file(
-    path,
-    b"BISECT-COVERAGE-4 1 5 a.mbt 1 0 1 1",
-    create_mode=CreateOrTruncate,
-  )
-  let files = read(coverage_file=path)
-  @fs.remove(path)
-  assert_eq(files.length(), 1)
-  assert_eq(files[0].filename, "a.mbt")
-  assert_eq(files[0].points, [0L])
-  assert_eq(files[0].counts, [1L])
+  @async.with_task_group(group => {
+    let root = @fs.tmpdir(prefix="moon-cov-read-one-")
+    group.add_defer(() => @fs.rmdir(root, recursive=true))
+    let path = @path.Path(root).join(Path("read-one.coverage")).to_string()
+    @fs.write_file(
+      path,
+      b"BISECT-COVERAGE-4 1 5 a.mbt 1 0 1 1",
+      create_mode=CreateOrTruncate,
+    )
+    let files = read(coverage_file=path)
+    assert_eq(files.length(), 1)
+    assert_eq(files[0].filename, "a.mbt")
+    assert_eq(files[0].points, [0L])
+    assert_eq(files[0].counts, [1L])
+  })
 }
 
 ///|
 async test "read propagates filesystem errors" {
-  try read(coverage_file="_build/does-not-exist.coverage") catch {
-    _ => ()
-  } noraise {
-    _ => fail("expected a filesystem error")
-  }
+  @async.with_task_group(group => {
+    let root = @fs.tmpdir(prefix="moon-cov-missing-")
+    group.add_defer(() => @fs.rmdir(root, recursive=true))
+    let missing = @path.Path(root)
+      .join(Path("does-not-exist.coverage"))
+      .to_string()
+    try read(coverage_file=missing) catch {
+      _ => ()
+    } noraise {
+      _ => fail("expected a filesystem error")
+    }
+  })
 }

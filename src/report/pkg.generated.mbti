@@ -1,7 +1,12 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "moonbitlang/moon_cove/report"
 
+import {
+  "moonbitlang/moon_cove/common",
+}
+
 // Values
+pub async fn load_coverage(coverage_files~ : ArrayView[String], coverage_paths~ : ArrayView[String], expect~ : ArrayView[String], do_not_expect~ : ArrayView[String]) -> Map[String, @common.InstrumentedFile]
 
 // Errors
 
