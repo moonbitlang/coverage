@@ -8,6 +8,8 @@ import {
 // Values
 pub let coverage_file_identifier : String
 
+pub fn write_coverage(Map[String, InstrumentedFile]) -> Bytes
+
 // Errors
 
 // Types and methods

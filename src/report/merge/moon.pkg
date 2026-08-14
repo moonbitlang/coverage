@@ -1,0 +1,15 @@
+import {
+  "moonbitlang/moon_cove/common",
+  "moonbitlang/moon_cove/report",
+  "moonbitlang/async/fs",
+  "moonbitlang/x/path",
+}
+
+import {
+  "moonbitlang/moon_cove/report",
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/x/path",
+} for "test"
+
+supported_targets = "+native"

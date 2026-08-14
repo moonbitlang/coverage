@@ -1,0 +1,13 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitlang/moon_cove/report/merge"
+
+// Values
+pub async fn output(to_file~ : String, coverage_files~ : ArrayView[String], coverage_paths~ : ArrayView[String]) -> Unit
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
