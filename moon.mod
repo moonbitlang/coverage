@@ -25,8 +25,6 @@ preferred_target = "native"
 
 description = "Bisect coverage format decoding and reporting for MoonBit"
 
-source = "src"
-
 import {
   "moonbitlang/async@0.20.4",
   "moonbitlang/x@0.4.48",
