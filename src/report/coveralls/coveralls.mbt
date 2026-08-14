@@ -1,11 +1,40 @@
 ///|
-fn coverage_count_json(count : Int64?) -> Json {
+priv struct CoverallsSourceFile {
+  name : String
+  source_digest : String
+  coverage : Array[Int64?]
+}
+
+///|
+fn count_to_json(count : Int64?) -> Json {
   if count is Some(value) {
     Json::number(value.to_double(), repr=value.to_string())
   } else {
     Json::null()
   }
 }
+
+///|
+impl ToJson for CoverallsSourceFile with fn to_json(self) {
+  Json::object(
+    Map([
+      ("name", Json::string(self.name)),
+      ("source_digest", Json::string(self.source_digest)),
+      ("coverage", Json::array(self.coverage.map(count_to_json))),
+    ]),
+  )
+}
+
+///|
+priv struct CoverallsReport {
+  service_name : String?
+  service_number : String?
+  service_job_id : String?
+  service_pull_request : String?
+  repo_token : String?
+  parallel : Bool?
+  source_files : Array[CoverallsSourceFile]
+} derive(ToJson)
 
 ///|
 /// Read and aggregate Bisect coverage files, resolve their source files, and
@@ -31,7 +60,7 @@ pub async fn[W : @io.Writer] output(
     expect~,
     do_not_expect~,
   )
-  let source_files : Array[Json] = []
+  let source_files : Array[CoverallsSourceFile] = []
   let files = coverage.values().to_array()
   files.sort_by((left, right) => left.filename.compare(right.filename))
   for file in files {
@@ -47,37 +76,30 @@ pub async fn[W : @io.Writer] output(
         source,
         points=file.points,
         counts=file.counts,
-      ).map(coverage_count_json)
-      source_files.push(
-        Json::object(
-          Map([
-            ("name", Json::string(file.filename)),
-            ("source_digest", Json::string(source_digest)),
-            ("coverage", Json::array(coverage)),
-          ]),
-        ),
       )
+      source_files.push({ name: file.filename, source_digest, coverage })
     }
   }
-  let metadata = [
-    ("service_name", service_name),
-    ("service_number", service_number),
-    ("service_job_id", service_job_id),
-    ("service_pull_request", service_pull_request),
-    ("repo_token", repo_token),
-  ].filter_map(entry => {
-    let value = entry.1.trim()
+  let optional_metadata : (String) -> String? = value => {
+    let value = value.trim()
     if value.is_empty() {
       None
     } else {
-      Some((entry.0, Json::string(value.to_owned())))
+      Some(value.to_owned())
     }
-  })
-  let report_fields = Map(metadata)
-  if parallel {
-    report_fields["parallel"] = Json::boolean(true)
   }
-  report_fields["source_files"] = Json::array(source_files)
-  let report = Json::object(report_fields)
-  writer.write(report.stringify(indent=2) + "\n")
+  let report = CoverallsReport::{
+    service_name: optional_metadata(service_name),
+    service_number: optional_metadata(service_number),
+    service_job_id: optional_metadata(service_job_id),
+    service_pull_request: optional_metadata(service_pull_request),
+    repo_token: optional_metadata(repo_token),
+    parallel: if parallel {
+      Some(true)
+    } else {
+      None
+    },
+    source_files,
+  }
+  writer.write(ToJson::to_json(report).stringify(indent=2) + "\n")
 }
