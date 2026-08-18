@@ -1,11 +1,21 @@
 import {
+  "moonbitlang/moon_cove/report",
+  "moonbitlang/moon_cove/report/cobertura",
   "moonbitlang/moon_cove/report/html",
+  "moonbitlang/moon_cove/report/text",
   "moonbitlang/core/argparse",
   "moonbitlang/core/string",
   "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/io",
   "moonbitlang/async/stdio",
+  "moonbitlang/x/path",
   "moonbitlang/x/sys",
 }
+
+import {
+  "moonbitlang/async",
+} for "wbtest"
 
 supported_targets = "+native"
 

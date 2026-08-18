@@ -27,5 +27,5 @@ description = "Bisect coverage format decoding and reporting for MoonBit"
 
 import {
   "moonbitlang/async@0.20.4",
-  "moonbitlang/x@0.4.48",
+  "moonbitlang/x@0.4.50",
 }

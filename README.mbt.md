@@ -21,9 +21,31 @@ moon run --target native cmd/moon-cove-report -- \
 Open `./_coverage/index.html`. The output is self-contained apart from its
 local CSS and font assets and does not require JavaScript or a web server.
 
+## Text summary
+
+Write the project summary to stdout, optionally including one row per source
+file:
+
+```sh
+moon run --target native cmd/moon-cove-report -- \
+  summary moonbit.coverage --per-file
+```
+
+## Cobertura XML
+
+Generate a line-oriented Cobertura report for CI integrations:
+
+```sh
+moon run --target native cmd/moon-cove-report -- \
+  cobertura coverage.xml moonbit.coverage \
+  --source-path /path/to/project
+```
+
 ## Todo
 
 - [x] Coveralls report
 - [x] HTML export
+- [x] Text summary
+- [x] Cobertura XML
 - [x] CLI support
 - [ ] MoonBit workspace
