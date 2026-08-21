@@ -48,4 +48,5 @@ moon run --target native cmd/moon-cove-report -- \
 - [x] Text summary
 - [x] Cobertura XML
 - [x] CLI support
+- [x] Wasm Target
 - [ ] MoonBit workspace

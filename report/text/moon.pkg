@@ -16,4 +16,4 @@ import {
   "moonbitlang/x/path",
 } for "test"
 
-supported_targets = "+native"
+supported_targets = "wasm+native"
