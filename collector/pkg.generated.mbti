@@ -1,0 +1,31 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitlang/moon_cove/collector"
+
+import {
+  "moonbitlang/moon_cove/common",
+}
+
+// Values
+pub async fn prepare(PrepareRequest) -> PreparedCoverage
+
+// Errors
+
+// Types and methods
+pub(all) struct PrepareRequest {
+  trace_sources : Array[String]
+  runtime_logs : Array[String]
+  source_paths : Array[String]
+  package_filter : String?
+  file_filter : String?
+  absolute_paths : Bool
+  current_directory : String
+}
+
+pub struct PreparedCoverage {
+  // private fields
+}
+pub fn PreparedCoverage::to_bisect(Self) -> Map[String, @common.InstrumentedFile]
+
+// Type aliases
+
+// Traits

@@ -166,23 +166,13 @@ async fn build_report(
 }
 
 ///|
-/// Read and aggregate Bisect coverage files, resolve their source files, and
-/// write a Cobertura-compatible XML report.
+/// Write a Cobertura-compatible XML report from prepared coverage.
 pub async fn[W : @io.Writer] output(
   writer~ : W,
-  coverage_files~ : ArrayView[String],
-  coverage_paths~ : ArrayView[String],
+  coverage~ : @common.Coverage,
   source_paths~ : ArrayView[String],
   ignore_missing_files~ : Bool,
-  expect~ : ArrayView[String],
-  do_not_expect~ : ArrayView[String],
 ) -> Unit {
-  let coverage = @report.load_coverage(
-    coverage_files~,
-    coverage_paths~,
-    expect~,
-    do_not_expect~,
-  )
   let report = build_report(coverage, source_paths, ignore_missing_files)
   writer.write(render(report))
 }

@@ -1,12 +1,5 @@
 import {
-  "moonbitlang/moon_cove/common",
-  "moonbitlang/core/encoding/utf8",
-  "moonbitlang/core/env",
-  "moonbitlang/core/int",
-  "moonbitlang/core/int64",
-  "moonbitlang/core/string",
   "moonbitlang/async/fs",
-  "moonbitlang/async/io",
   "moonbitlang/x/path",
 }
 

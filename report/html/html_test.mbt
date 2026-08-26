@@ -4,28 +4,23 @@ async test "output writes a complete offline HTML report" {
     let root = @fs.tmpdir(prefix="moon-cov-html-")
     group.add_defer(() => @fs.rmdir(root, recursive=true))
     let source_file = @path.Path(root).join(Path("src/a.mbt")).to_string()
-    let coverage_file = @path.Path(root)
-      .join(Path("sample.coverage"))
-      .to_string()
     let output_directory = @path.Path(root).join(Path("report")).to_string()
     @fs.mkdir(@path.Path(source_file).dirname().to_string(), recursive=true)
     @fs.write_file(source_file, b"a\n<&\n", create_mode=CreateOrTruncate)
-    @fs.write_file(
-      coverage_file,
-      b"BISECT-COVERAGE-4 1 9 src/a.mbt 3 0 2 3 3 4 1 0",
-      create_mode=CreateOrTruncate,
-    )
+    let coverage : @common.Coverage = Map([
+      (
+        "src/a.mbt",
+        { filename: "src/a.mbt", points: [0L, 2L, 3L], counts: [4L, 1L, 0L] },
+      ),
+    ])
     @html.output(
       to_directory=output_directory,
       title="moon_cove",
       tab_size=2,
       theme=Auto,
-      coverage_files=[coverage_file],
-      coverage_paths=[],
+      coverage~,
       source_paths=[root],
       ignore_missing_files=false,
-      expect=[],
-      do_not_expect=[],
     )
     let index_file = @path.Path(output_directory)
       .join(Path("index.html"))
@@ -63,29 +58,22 @@ async test "output writes multiple source files from one directory" {
     let source_directory = @path.Path(root).join(Path("src"))
     let first_source = source_directory.join(Path("a.mbt")).to_string()
     let second_source = source_directory.join(Path("b.mbt")).to_string()
-    let coverage_file = @path.Path(root)
-      .join(Path("sample.coverage"))
-      .to_string()
     let output_directory = @path.Path(root).join(Path("report")).to_string()
     @fs.mkdir(source_directory.to_string(), recursive=true)
     @fs.write_file(first_source, b"a\n", create_mode=CreateOrTruncate)
     @fs.write_file(second_source, b"b\n", create_mode=CreateOrTruncate)
-    @fs.write_file(
-      coverage_file,
-      b"BISECT-COVERAGE-4 2 9 src/a.mbt 1 0 1 1 9 src/b.mbt 1 0 1 0",
-      create_mode=CreateOrTruncate,
-    )
+    let coverage : @common.Coverage = Map([
+      ("src/a.mbt", { filename: "src/a.mbt", points: [0L], counts: [1L] }),
+      ("src/b.mbt", { filename: "src/b.mbt", points: [0L], counts: [0L] }),
+    ])
     @html.output(
       to_directory=output_directory,
       title="siblings",
       tab_size=2,
       theme=Auto,
-      coverage_files=[coverage_file],
-      coverage_paths=[],
+      coverage~,
       source_paths=[root],
       ignore_missing_files=false,
-      expect=[],
-      do_not_expect=[],
     )
     assert_true(
       @fs.exists(

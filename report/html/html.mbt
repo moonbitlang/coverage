@@ -26,27 +26,17 @@ async fn write_assets(to_directory : String) -> Unit {
 }
 
 ///|
-/// Read and aggregate Bisect coverage files, resolve their MoonBit sources,
-/// and write an offline tree-shaped HTML report.
+/// Write an offline tree-shaped HTML report from prepared coverage.
 pub async fn output(
   to_directory~ : String,
   title~ : String,
   tab_size~ : Int,
   theme~ : Theme,
-  coverage_files~ : ArrayView[String],
-  coverage_paths~ : ArrayView[String],
+  coverage~ : @common.Coverage,
   source_paths~ : ArrayView[String],
   ignore_missing_files~ : Bool,
-  expect~ : ArrayView[String],
-  do_not_expect~ : ArrayView[String],
 ) -> Unit {
   guard tab_size >= 0 else { fail("HTML tab size cannot be negative") }
-  let coverage = @report.load_coverage(
-    coverage_files~,
-    coverage_paths~,
-    expect~,
-    do_not_expect~,
-  )
   @report.mkdirs(to_directory)
   let files = coverage.values().to_array()
   files.sort_by((left, right) => left.filename.compare(right.filename))

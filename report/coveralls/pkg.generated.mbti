@@ -3,10 +3,11 @@ package "moonbitlang/moon_cove/report/coveralls"
 
 import {
   "moonbitlang/async/io",
+  "moonbitlang/moon_cove/common",
 }
 
 // Values
-pub async fn[W : @io.Writer] output(writer~ : W, service_name~ : String, service_number~ : String, service_job_id~ : String, service_pull_request~ : String, repo_token~ : String, parallel~ : Bool, coverage_files~ : ArrayView[String], coverage_paths~ : ArrayView[String], source_paths~ : ArrayView[String], ignore_missing_files~ : Bool, expect~ : ArrayView[String], do_not_expect~ : ArrayView[String]) -> Unit
+pub async fn[W : @io.Writer] output(writer~ : W, coverage~ : Map[String, @common.InstrumentedFile], service_name~ : String, service_number~ : String, service_job_id~ : String, service_pull_request~ : String, repo_token~ : String, parallel~ : Bool, source_paths~ : ArrayView[String], ignore_missing_files~ : Bool) -> Unit
 
 // Errors
 

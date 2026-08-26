@@ -1,0 +1,17 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitlang/moon_cove/report/summary"
+
+import {
+  "moonbitlang/moon_cove/common",
+}
+
+// Values
+pub fn render(Map[String, @common.InstrumentedFile], include_full~ : Bool) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

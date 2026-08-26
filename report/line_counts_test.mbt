@@ -17,6 +17,14 @@ test "line counts use the least visited point on a line" {
 }
 
 ///|
+test "line counts ignore one divergent zero point" {
+  assert_eq(
+    @report.line_counts(b"line\n", points=[0L, 2L, 4L], counts=[0L, 3L, 5L]),
+    [Some(3L)],
+  )
+}
+
+///|
 test "line counts sort instrumentation points by byte offset" {
   assert_eq(
     @report.line_counts(b"first\nsecond\nthird", points=[8L, 1L, 14L], counts=[

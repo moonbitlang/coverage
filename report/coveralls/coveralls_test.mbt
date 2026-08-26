@@ -1,6 +1,6 @@
 ///|
 async fn render_report(
-  coverage_data : Bytes,
+  coverage : @common.Coverage,
   source_filenames : ArrayView[String],
   service_name~ : String,
   service_number~ : String,
@@ -13,14 +13,10 @@ async fn render_report(
   @async.with_task_group(group => {
     let root = @fs.tmpdir(prefix="moon-cov-coveralls-")
     group.add_defer(() => @fs.rmdir(root, recursive=true))
-    let coverage_file = @path.Path(root)
-      .join(Path("sample.coverage"))
-      .to_string()
     for source_filename in source_filenames {
       let source_file = @path.Path(root).join(Path(source_filename)).to_string()
       @fs.write_file(source_file, b"abc", create_mode=CreateOrTruncate)
     }
-    @fs.write_file(coverage_file, coverage_data, create_mode=CreateOrTruncate)
     let reader = @io.MemoryReader() <| writer => {
       @coveralls.output(
         writer~,
@@ -30,12 +26,9 @@ async fn render_report(
         service_pull_request~,
         repo_token~,
         parallel~,
-        coverage_files=[coverage_file],
-        coverage_paths=[],
+        coverage~,
         source_paths=[root],
         ignore_missing_files~,
-        expect=[],
-        do_not_expect=[],
       )
     }
     defer reader.close()
@@ -53,7 +46,7 @@ async fn render_one_source_report(
   parallel~ : Bool,
 ) -> Json {
   render_report(
-    b"BISECT-COVERAGE-4 1 10 sample.mbt 1 0 1 1",
+    Map([("sample.mbt", { filename: "sample.mbt", points: [0L], counts: [1L] })]),
     ["sample.mbt"],
     service_name~,
     service_number~,
@@ -135,7 +128,10 @@ async test "output marks reports that belong to a parallel build" {
 ///|
 async test "output orders source files by coverage filename" {
   let actual = render_report(
-    b"BISECT-COVERAGE-4 2 5 b.mbt 1 0 1 1 5 a.mbt 1 0 1 1",
+    Map([
+      ("b.mbt", { filename: "b.mbt", points: [0L], counts: [1L] }),
+      ("a.mbt", { filename: "a.mbt", points: [0L], counts: [1L] }),
+    ]),
     ["b.mbt", "a.mbt"],
     service_name="",
     service_number="",
@@ -163,7 +159,9 @@ async test "output orders source files by coverage filename" {
 ///|
 async test "output skips unresolved source files when requested" {
   let actual = render_report(
-    b"BISECT-COVERAGE-4 1 11 missing.mbt 1 0 1 1",
+    Map([
+      ("missing.mbt", { filename: "missing.mbt", points: [0L], counts: [1L] }),
+    ]),
     [],
     service_name="",
     service_number="",

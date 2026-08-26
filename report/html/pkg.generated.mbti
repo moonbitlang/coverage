@@ -3,10 +3,11 @@ package "moonbitlang/moon_cove/report/html"
 
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/moon_cove/common",
 }
 
 // Values
-pub async fn output(to_directory~ : String, title~ : String, tab_size~ : Int, theme~ : Theme, coverage_files~ : ArrayView[String], coverage_paths~ : ArrayView[String], source_paths~ : ArrayView[String], ignore_missing_files~ : Bool, expect~ : ArrayView[String], do_not_expect~ : ArrayView[String]) -> Unit
+pub async fn output(to_directory~ : String, title~ : String, tab_size~ : Int, theme~ : Theme, coverage~ : Map[String, @common.InstrumentedFile], source_paths~ : ArrayView[String], ignore_missing_files~ : Bool) -> Unit
 
 // Errors
 

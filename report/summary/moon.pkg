@@ -1,0 +1,5 @@
+import {
+  "moonbitlang/moon_cove/common",
+}
+
+supported_targets = "wasm+native"

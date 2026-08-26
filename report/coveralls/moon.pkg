@@ -1,4 +1,5 @@
 import {
+  "moonbitlang/moon_cove/common",
   "moonbitlang/moon_cove/report",
   "moonbitlang/core/json",
   "moonbitlang/core/int64",

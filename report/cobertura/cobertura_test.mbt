@@ -3,29 +3,28 @@ async test "output emits a Cobertura report with line coverage" {
   @async.with_task_group(group => {
     let root = @fs.tmpdir(prefix="moon-cove-cobertura-")
     group.add_defer(() => @fs.rmdir(root, recursive=true))
-    let coverage_file = @path.Path(root)
-      .join(Path("sample.coverage"))
-      .to_string()
     let source_file = @path.Path(root).join(Path("test.mbt")).to_string()
     @fs.write_file(
       source_file,
       b"x\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\n",
       create_mode=CreateOrTruncate,
     )
-    @fs.write_file(
-      coverage_file,
-      b"BISECT-COVERAGE-4 1 8 test.mbt 6 2 8 14 24 26 30 6 1 0 1 0 0 0",
-      create_mode=CreateOrTruncate,
-    )
+    let coverage : @common.Coverage = Map([
+      (
+        "test.mbt",
+        {
+          filename: "test.mbt",
+          points: [2L, 8L, 14L, 24L, 26L, 30L],
+          counts: [1L, 0L, 1L, 0L, 0L, 0L],
+        },
+      ),
+    ])
     let reader = @io.MemoryReader() <| writer => {
       @cobertura.output(
         writer~,
-        coverage_files=[coverage_file],
-        coverage_paths=[],
+        coverage~,
         source_paths=[root],
         ignore_missing_files=false,
-        expect=[],
-        do_not_expect=[],
       )
     }
     defer reader.close()

@@ -1,52 +1,51 @@
 # moon_cov
 
-MoonBit port of Bisect's coverage-report pipeline (working in progress)
+MoonBit implementation of the MoonBit compiler coverage reporter.
 
-## HTML report
+It reads compiler-generated `.trace.source` metadata together with
+`moonbit_coverage_*` runtime logs. The current reader supports trace schema
+`MOONCOVE00000004`.
 
-Generate Bisect-compatible coverage data, then render the static
-report with `moon_cov`:
+## Usage
+
+Run tests with coverage in the target project:
 
 ```sh
 moon test --enable-coverage
-moon coverage report -f bisect -o moonbit.coverage
-
-moon run --target native cmd/moon-cove-report -- \
-  html moonbit.coverage \
-  --source-path /path/to/project \
-  --title "MoonBit coverage" \
-  -o ./_coverage
 ```
 
-Open `./_coverage/index.html`. The output is self-contained apart from its
-local CSS and font assets and does not require JavaScript or a web server.
-
-## Text summary
-
-Write the project summary to stdout, optionally including one row per source
-file:
+When `moon-cove-report` runs from that project root, it discovers both input
+types recursively:
 
 ```sh
-moon run --target native cmd/moon-cove-report -- \
-  summary moonbit.coverage --per-file
+moon-cove-report -f html
+moon-cove-report -f summary
+moon-cove-report -f cobertura -o cobertura.xml
+moon-cove-report -f coveralls -o coveralls.json
+moon-cove-report -f bisect -o bisect.coverage
 ```
 
-## Cobertura XML
-
-Generate a line-oriented Cobertura report for CI integrations:
+Inputs can also be explicit:
 
 ```sh
-moon run --target native cmd/moon-cove-report -- \
-  cobertura coverage.xml moonbit.coverage \
-  --source-path /path/to/project
+moon-cove-report path/to/package.trace.source \
+  -t path/to/moonbit_coverage_1.txt \
+  -f html \
+  --source-paths /path/to/project
 ```
 
-## Todo
+Filters use exact or path-suffix matching:
 
-- [x] Coveralls report
-- [x] HTML export
-- [x] Text summary
-- [x] Cobertura XML
-- [x] CLI support
-- [x] Wasm Target
-- [ ] MoonBit workspace
+```sh
+moon-cove-report -p username/module/pkg -F source.mbt -f summary
+```
+
+Supported formats in this stage are `bisect`, `html`, `coveralls`,
+`cobertura`, `summary`, and `full_summary`.
+
+## Next stage
+
+- Detailed and grouped caret reports
+- Parent-aware hot-point summary
+- Coveralls and Codecov upload
+- Portable trace schema

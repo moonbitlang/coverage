@@ -37,29 +37,19 @@ priv struct CoverallsReport {
 } derive(ToJson)
 
 ///|
-/// Read and aggregate Bisect coverage files, resolve their source files, and
-/// write a Coveralls-compatible JSON report.
+/// Write a Coveralls-compatible JSON report from prepared coverage.
 pub async fn[W : @io.Writer] output(
   writer~ : W,
+  coverage~ : @common.Coverage,
   service_name~ : String,
   service_number~ : String,
   service_job_id~ : String,
   service_pull_request~ : String,
   repo_token~ : String,
   parallel~ : Bool,
-  coverage_files~ : ArrayView[String],
-  coverage_paths~ : ArrayView[String],
   source_paths~ : ArrayView[String],
   ignore_missing_files~ : Bool,
-  expect~ : ArrayView[String],
-  do_not_expect~ : ArrayView[String],
 ) -> Unit {
-  let coverage = @report.load_coverage(
-    coverage_files~,
-    coverage_paths~,
-    expect~,
-    do_not_expect~,
-  )
   let source_files : Array[CoverallsSourceFile] = []
   let files = coverage.values().to_array()
   files.sort_by((left, right) => left.filename.compare(right.filename))

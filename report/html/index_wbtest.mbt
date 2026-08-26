@@ -8,15 +8,15 @@ test "index page collates files into uniform package nodes" {
       stats: (2, 2),
     },
     {
-      filename: "report/input.mbt",
-      report_path: "report/input.mbt",
-      href: "report/input.mbt.html",
+      filename: "src/summary.mbt",
+      report_path: "src/summary.mbt",
+      href: "src/summary.mbt.html",
       stats: (2, 3),
     },
     {
-      filename: "report/text/text.mbt",
-      report_path: "report/text/text.mbt",
-      href: "report/text/text.mbt.html",
+      filename: "src/nested/detail.mbt",
+      report_path: "src/nested/detail.mbt",
+      href: "src/nested/detail.mbt.html",
       stats: (0, 1),
     },
   ]
@@ -27,9 +27,9 @@ test "index page collates files into uniform package nodes" {
   )
   assert_eq(page.split("class=\"tree-node package-node\"").length(), 4)
   assert_eq(page.split("class=\"node-title package-title\"").length(), 4)
-  assert_true(page.contains(">report/</span>"))
-  assert_true(page.contains(">text/</span>"))
-  assert_true(page.contains("href=\"report/text/text.mbt.html\""))
+  assert_true(page.contains(">src/</span>"))
+  assert_true(page.contains(">nested/</span>"))
+  assert_true(page.contains("href=\"src/nested/detail.mbt.html\""))
   assert_false(page.contains("directory-node"))
   assert_false(page.contains("<script"))
 }

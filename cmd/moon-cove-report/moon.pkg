@@ -1,8 +1,11 @@
 import {
+  "moonbitlang/moon_cove/common",
+  "moonbitlang/moon_cove/collector",
   "moonbitlang/moon_cove/report",
   "moonbitlang/moon_cove/report/cobertura",
   "moonbitlang/moon_cove/report/html",
-  "moonbitlang/moon_cove/report/text",
+  "moonbitlang/moon_cove/report/coveralls",
+  "moonbitlang/moon_cove/report/summary",
   "moonbitlang/core/argparse",
   "moonbitlang/core/string",
   "moonbitlang/async",
@@ -15,6 +18,8 @@ import {
 
 import {
   "moonbitlang/async",
+  "moonbitlang/core/encoding/base64",
+  "moonbitlang/core/encoding/utf8",
 } for "wbtest"
 
 supported_targets = "wasm+native"

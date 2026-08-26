@@ -11,7 +11,7 @@
 
 name = "moonbitlang/moon_cove"
 
-version = "0.1.0"
+version = "0.2.0"
 
 readme = "README.mbt.md"
 
@@ -23,7 +23,7 @@ keywords = [ "coverage", "bisect" ]
 
 preferred_target = "native"
 
-description = "Bisect coverage format decoding and reporting for MoonBit"
+description = "Coverage report generation from MoonBit compiler artifacts"
 
 import {
   "moonbitlang/async@0.20.4",
