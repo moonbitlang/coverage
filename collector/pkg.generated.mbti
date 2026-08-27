@@ -24,6 +24,7 @@ pub(all) struct PrepareRequest {
 pub struct PreparedCoverage {
   // private fields
 }
+pub fn PreparedCoverage::sorted_summary(Self, limit? : Int) -> String
 pub fn PreparedCoverage::to_bisect(Self) -> Map[String, @common.InstrumentedFile]
 
 // Type aliases

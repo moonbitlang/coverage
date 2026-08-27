@@ -1,6 +1,8 @@
 ///|
 #warnings("-unused_field")
 priv struct SourceRange {
+  package_name : String
+  filename : String
   start_line : Int
   start_column : Int
   end_line : Int

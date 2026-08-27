@@ -46,21 +46,33 @@ fn[A] decode_list(
 }
 
 ///|
-fn decode_position(value : MarshalValue) -> (Int, Int) raise MarshalError {
-  guard expect_block(value, 3) is [_, line, column] else {
+fn decode_position(
+  value : MarshalValue,
+) -> (String, Int, Int) raise MarshalError {
+  guard expect_block(value, 3) is [filename, line, column] else {
     raise InvalidShape("position")
   }
-  (expect_int(line), expect_int(column))
+  (expect_string(filename), expect_int(line), expect_int(column))
 }
 
 ///|
 fn decode_range(value : MarshalValue) -> SourceRange raise MarshalError {
-  guard expect_block(value, 3) is [_, start, end] else {
+  guard expect_block(value, 3) is [package_name, start, end] else {
     raise InvalidShape("range")
   }
-  let (start_line, start_column) = decode_position(start)
-  let (end_line, end_column) = decode_position(end)
-  { start_line, start_column, end_line, end_column }
+  let (start_filename, start_line, start_column) = decode_position(start)
+  let (end_filename, end_line, end_column) = decode_position(end)
+  guard start_filename == end_filename else {
+    raise InvalidShape("matching position filenames")
+  }
+  {
+    package_name: expect_string(package_name),
+    filename: start_filename,
+    start_line,
+    start_column,
+    end_line,
+    end_column,
+  }
 }
 
 ///|

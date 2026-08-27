@@ -27,9 +27,32 @@ test "decode compiler v4 trace source" {
   assert_eq(root.ranges.length(), 3)
   assert_eq(positive.parent, Some(0))
   let range = positive.ranges[0]
+  assert_eq(range.package_name, "fixture/cov")
+  assert_eq(range.filename, "cov.mbt")
   assert_eq((range.start_line, range.start_column), (4, 4))
   assert_eq((range.end_line, range.end_column), (4, 14))
   assert_eq(negative.parent, Some(0))
+}
+
+///|
+test "reject a source range whose position filenames differ" {
+  let position : (String, Int, Int) -> MarshalValue = (filename, line, column) => {
+    Block(0, [String(filename), Int(line.to_int64()), Int(column.to_int64())])
+  }
+  try
+    decode_range(
+      Block(0, [
+        String("fixture/cov"),
+        position("start.mbt", 1, 0),
+        position("end.mbt", 1, 1),
+      ]),
+    )
+  catch {
+    InvalidShape("matching position filenames") => ()
+    error => fail("unexpected error: \{error}")
+  } noraise {
+    _ => fail("expected mismatched position filenames to fail")
+  }
 }
 
 ///|
