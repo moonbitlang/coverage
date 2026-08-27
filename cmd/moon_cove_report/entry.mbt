@@ -10,6 +10,8 @@ async fn main {
     MissingArgument(name) => exit_with_error("missing argument '\{name}'")
     UnknownFormat(format) =>
       exit_with_error("unknown output format '\{format}'")
+    UnknownSendTarget(target) =>
+      exit_with_error("unknown upload target '\{target}'")
     error => exit_with_error("\{error}")
   }
 }

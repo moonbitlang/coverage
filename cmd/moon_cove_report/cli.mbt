@@ -2,24 +2,28 @@
 priv suberror ReportCliError {
   MissingArgument(String)
   UnknownFormat(String)
+  UnknownSendTarget(String)
 } derive(Debug)
 
 ///|
 priv enum OutputFormat {
   Bisect
+  SimplifiedCaret
+  Caret
   Html
   Coveralls
   Cobertura
   Summary
   FullSummary
+  SortedSummary
 }
 
 ///|
 fn compiler_command() -> @argparse.Command {
   Command(
-    "moon-cove-report",
+    "moon_cove_report",
     about="Generate reports from MoonBit compiler coverage data.",
-    version="0.2.0",
+    version="0.3.0",
     flags=[
       FlagArg(
         "ignore-missing-files",
@@ -29,6 +33,10 @@ fn compiler_command() -> @argparse.Command {
       FlagArg("absolute-file-paths", about="Keep absolute paths in reports."),
       FlagArg("verbose", about="Print collection diagnostics."),
       FlagArg("coveralls-parallel", about="Mark a parallel Coveralls build."),
+      FlagArg(
+        "coveralls-include-git-info",
+        about="Include Git metadata in Coveralls output.",
+      ),
     ],
     options=[
       OptionArg(
@@ -41,7 +49,7 @@ fn compiler_command() -> @argparse.Command {
         "format",
         short='f',
         default_values=["bisect"],
-        about="Report format: bisect, html, coveralls, cobertura, summary, or full_summary.",
+        about="Report format: bisect, caret, simp_caret, coveralls, cobertura, html, summary, full_summary, or sorted_summary.",
       ),
       OptionArg("output", short='o', about="Output file or directory."),
       OptionArg("package", short='p', about="Only include this package."),
@@ -51,11 +59,35 @@ fn compiler_command() -> @argparse.Command {
         default_values=["."],
         about="Comma-separated source roots.",
       ),
-      OptionArg("service-name", default_values=[""]),
-      OptionArg("service-number", default_values=[""]),
-      OptionArg("service-job-id", default_values=[""]),
-      OptionArg("service-pull-request", default_values=[""]),
-      OptionArg("coveralls-token", default_values=[""]),
+      OptionArg(
+        "service-name",
+        default_values=[""],
+        about="Service name for Coveralls metadata.",
+      ),
+      OptionArg(
+        "service-number",
+        default_values=[""],
+        about="Build number for Coveralls metadata.",
+      ),
+      OptionArg(
+        "service-job-id",
+        default_values=[""],
+        about="CI job identifier for uploads.",
+      ),
+      OptionArg(
+        "service-pull-request",
+        default_values=[""],
+        about="Pull request number for uploads.",
+      ),
+      OptionArg(
+        "coveralls-token",
+        default_values=[""],
+        about="Coveralls or Codecov upload token.",
+      ),
+      OptionArg(
+        "send-to",
+        about="Upload the coveralls report to coveralls or codecov.",
+      ),
     ],
     positionals=[
       PositionArg(
@@ -101,11 +133,14 @@ fn cli_flag(
 fn parse_format(value : String) -> OutputFormat raise ReportCliError {
   match value.to_lower() {
     "bisect" => Bisect
+    "simp_caret" => SimplifiedCaret
+    "caret" => Caret
     "html" => Html
     "coveralls" => Coveralls
     "cobertura" => Cobertura
     "summary" => Summary
     "full_summary" => FullSummary
+    "sorted_summary" => SortedSummary
     _ => raise UnknownFormat(value)
   }
 }
@@ -117,7 +152,7 @@ fn default_output(format : OutputFormat) -> String? {
     Html => Some("_coverage")
     Coveralls => Some("coveralls.json")
     Cobertura => Some("cobertura.xml")
-    Summary | FullSummary => None
+    SimplifiedCaret | Caret | Summary | FullSummary | SortedSummary => None
   }
 }
 
@@ -148,7 +183,7 @@ async fn run_compiler_report(
     .split(",")
     .map(part => part.to_owned())
     .to_array()
-  let coverage = @collector.prepare({
+  let prepared = @collector.prepare({
     trace_sources: cli_values(matches, "trace-sources"),
     runtime_logs: cli_values(matches, "runtime-log"),
     source_paths,
@@ -156,7 +191,8 @@ async fn run_compiler_report(
     file_filter: cli_optional(matches, "file"),
     absolute_paths: cli_flag(matches, "absolute-file-paths"),
     current_directory,
-  }).to_bisect()
+  })
+  let coverage = prepared.to_bisect()
   if cli_flag(matches, "verbose") {
     @stdio.stderr.write("Collected \{coverage.length()} source file(s)\n")
   }
@@ -180,28 +216,33 @@ async fn run_compiler_report(
           default=true,
         ),
       )
-    Coveralls => {
-      let reader = @io.MemoryReader() <| writer => {
-        @coveralls.output(
-          writer~,
+    SimplifiedCaret =>
+      @stdio.stdout.write(
+        @caret.render(
           coverage~,
-          service_name=cli_value(matches, "service-name"),
-          service_number=cli_value(matches, "service-number"),
-          service_job_id=cli_value(matches, "service-job-id"),
-          service_pull_request=cli_value(matches, "service-pull-request"),
-          repo_token=cli_value(matches, "coveralls-token"),
-          parallel=cli_flag(matches, "coveralls-parallel"),
+          style=Simplified,
           source_paths~,
           ignore_missing_files=cli_flag(
             matches,
             "ignore-missing-files",
             default=true,
           ),
-        )
-      }
-      defer reader.close()
-      write_output(output_path(matches, format), reader.read_all())
-    }
+        ),
+      )
+    Caret =>
+      @stdio.stdout.write(
+        @caret.render(
+          coverage~,
+          style=Detailed,
+          source_paths~,
+          ignore_missing_files=cli_flag(
+            matches,
+            "ignore-missing-files",
+            default=true,
+          ),
+        ),
+      )
+    Coveralls => run_coveralls(matches, coverage, source_paths)
     Cobertura => {
       let reader = @io.MemoryReader() <| writer => {
         @cobertura.output(
@@ -222,5 +263,6 @@ async fn run_compiler_report(
       @stdio.stdout.write(@summary.render(coverage, include_full=false))
     FullSummary =>
       @stdio.stdout.write(@summary.render(coverage, include_full=true))
+    SortedSummary => @stdio.stdout.write(prepared.sorted_summary())
   }
 }

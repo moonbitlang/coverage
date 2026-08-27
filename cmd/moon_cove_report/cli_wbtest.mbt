@@ -27,6 +27,32 @@ test "compiler-style command parses report inputs" {
 }
 
 ///|
+test "final command exposes all compiler report formats" {
+  assert_true(parse_format("caret") is Caret)
+  assert_true(parse_format("simp_caret") is SimplifiedCaret)
+  assert_true(parse_format("sorted_summary") is SortedSummary)
+  let matches = compiler_command().parse(
+    argv=[
+      "-f", "sorted_summary", "--send-to", "codecov", "--coveralls-include-git-info",
+    ],
+    env={},
+  )
+  assert_eq(cli_value(matches, "send-to"), "codecov")
+  assert_true(parse_send_target("coveralls") is Coveralls)
+  assert_true(parse_send_target("codecov") is Codecov)
+  assert_true(cli_flag(matches, "coveralls-include-git-info"))
+  let help = compiler_command().render_help()
+  assert_true(help.contains("Usage: moon_cove_report"))
+  for
+    format in [
+      "bisect", "caret", "simp_caret", "coveralls", "cobertura", "html", "summary",
+      "full_summary", "sorted_summary",
+    ] {
+    assert_true(help.contains(format))
+  }
+}
+
+///|
 async test "CLI writes compiler coverage as Bisect" {
   @async.with_task_group(group => {
     let root = @fs.tmpdir(prefix="moon-cove-cli-")
