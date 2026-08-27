@@ -4,8 +4,10 @@ import {
   "moonbitlang/core/json",
   "moonbitlang/core/int64",
   "moonbitlang/core/string",
+  "moonbitlang/async",
   "moonbitlang/async/fs",
   "moonbitlang/async/io",
+  "moonbitlang/async/process",
   "moonbitlang/x/crypto",
 }
 

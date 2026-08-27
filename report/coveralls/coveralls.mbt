@@ -1,4 +1,43 @@
 ///|
+priv struct GitHead {
+  id : String
+  author_name : String
+  author_email : String
+  committer_name : String
+  committer_email : String
+  message : String
+}
+
+///|
+pub struct GitInfo {
+  priv head : GitHead
+  priv branch : String
+}
+
+///|
+impl ToJson for GitInfo with fn to_json(self) {
+  Json::object(
+    Map([
+      (
+        "head",
+        Json::object(
+          Map([
+            ("id", Json::string(self.head.id)),
+            ("author_name", Json::string(self.head.author_name)),
+            ("author_email", Json::string(self.head.author_email)),
+            ("committer_name", Json::string(self.head.committer_name)),
+            ("committer_email", Json::string(self.head.committer_email)),
+            ("message", Json::string(self.head.message)),
+          ]),
+        ),
+      ),
+      ("branch", Json::string(self.branch)),
+      ("remotes", Json::array([])),
+    ]),
+  )
+}
+
+///|
 priv struct CoverallsSourceFile {
   name : String
   source_digest : String
@@ -33,6 +72,7 @@ priv struct CoverallsReport {
   service_pull_request : String?
   repo_token : String?
   parallel : Bool?
+  git : GitInfo?
   source_files : Array[CoverallsSourceFile]
 } derive(ToJson)
 
@@ -47,6 +87,7 @@ pub async fn[W : @io.Writer] output(
   service_pull_request~ : String,
   repo_token~ : String,
   parallel~ : Bool,
+  git? : GitInfo,
   source_paths~ : ArrayView[String],
   ignore_missing_files~ : Bool,
 ) -> Unit {
@@ -89,6 +130,7 @@ pub async fn[W : @io.Writer] output(
     } else {
       None
     },
+    git,
     source_files,
   }
   writer.write(ToJson::to_json(report).stringify(indent=2) + "\n")

@@ -7,11 +7,36 @@ import {
 }
 
 // Values
-pub async fn[W : @io.Writer] output(writer~ : W, coverage~ : Map[String, @common.InstrumentedFile], service_name~ : String, service_number~ : String, service_job_id~ : String, service_pull_request~ : String, repo_token~ : String, parallel~ : Bool, source_paths~ : ArrayView[String], ignore_missing_files~ : Bool) -> Unit
+pub async fn collect_git_info() -> GitInfo
+
+pub async fn[W : @io.Writer] output(writer~ : W, coverage~ : Map[String, @common.InstrumentedFile], service_name~ : String, service_number~ : String, service_job_id~ : String, service_pull_request~ : String, repo_token~ : String, parallel~ : Bool, git? : GitInfo, source_paths~ : ArrayView[String], ignore_missing_files~ : Bool) -> Unit
+
+pub fn resolve_upload_metadata(Map[String, String], SendTarget, service_name~ : String, service_job_id~ : String, service_pull_request~ : String, repo_token~ : String) -> UploadMetadata raise MetadataError
+
+pub async fn upload(SendTarget, report_file~ : String, codecov_token? : String) -> Unit
 
 // Errors
+pub(all) suberror MetadataError {
+  UnsupportedCI
+  MissingMetadata(String)
+}
 
 // Types and methods
+pub struct GitInfo {
+  // private fields
+}
+
+pub(all) enum SendTarget {
+  Coveralls
+  Codecov
+}
+
+pub(all) struct UploadMetadata {
+  service_name : String
+  service_job_id : String
+  service_pull_request : String
+  repo_token : String
+}
 
 // Type aliases
 

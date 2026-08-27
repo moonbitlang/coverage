@@ -19,8 +19,55 @@ test "report JSON omits absent optional metadata" {
     service_pull_request: None,
     repo_token: None,
     parallel: None,
+    git: None,
     source_files: [],
   }
   let expected : Json = { "source_files": [] }
   assert_eq(ToJson::to_json(report), expected)
+}
+
+///|
+async test "output safely encodes optional Git metadata" {
+  let git = GitInfo::{
+    head: {
+      id: "deadbeef",
+      author_name: "A \"quoted\" author",
+      author_email: "author@example.test",
+      committer_name: "Committer\\Name",
+      committer_email: "committer@example.test",
+      message: "subject\nsecond line",
+    },
+    branch: "feature/json\"encoding",
+  }
+  let reader = @io.MemoryReader() <| writer => {
+    output(
+      writer~,
+      coverage={},
+      service_name="",
+      service_number="",
+      service_job_id="",
+      service_pull_request="",
+      repo_token="",
+      parallel=false,
+      git~,
+      source_paths=[],
+      ignore_missing_files=true,
+    )
+  }
+  defer reader.close()
+  json_inspect(@json.parse(reader.read_all().text()), content={
+    "git": {
+      "head": {
+        "id": "deadbeef",
+        "author_name": "A \"quoted\" author",
+        "author_email": "author@example.test",
+        "committer_name": "Committer\\Name",
+        "committer_email": "committer@example.test",
+        "message": "subject\nsecond line",
+      },
+      "branch": "feature/json\"encoding",
+      "remotes": [],
+    },
+    "source_files": [],
+  })
 }
