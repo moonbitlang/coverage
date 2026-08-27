@@ -1,0 +1,51 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+  release:
+    types: [released]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Show versions
+        run: |
+          moon version --all
+          moonrun --version
+
+      - name: Resolve dependencies
+        run: moon update
+
+      - name: Check all targets
+        run: moon check --target all --warn-list +73
+
+      - name: Verify interfaces
+        run: |
+          moon info
+          git diff --exit-code
+
+      - name: Test native
+        run: moon test --target native
+
+      - name: Test wasm
+        run: moon test --target wasm
+
+      - name: Publish to Mooncakes
+        env:
+          SECRET: ${{ secrets.MOONCAKES_MOONBITLANG_TOKEN }}
+        run: |
+          mkdir -p "$HOME/.moon"
+          trap 'rm -f "$HOME/.moon/credentials.json"' EXIT
+          printf '%s' "$SECRET" > "$HOME/.moon/credentials.json"
+          moon publish
