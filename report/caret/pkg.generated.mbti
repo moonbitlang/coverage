@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitlang/moon_cove/report/caret"
+
+import {
+  "moonbitlang/moon_cove/common",
+}
+
+// Values
+pub async fn render(coverage~ : Map[String, @common.InstrumentedFile], style~ : Style, source_paths~ : ArrayView[String], ignore_missing_files~ : Bool) -> String
+
+// Errors
+
+// Types and methods
+pub(all) enum Style {
+  Detailed
+  Simplified
+}
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,22 @@
+import {
+  "moonbitlang/moon_cove/common",
+  "moonbitlang/moon_cove/report",
+  "moonbitlang/core/array",
+  "moonbitlang/core/buffer",
+  "moonbitlang/core/bytes",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/int",
+  "moonbitlang/core/list",
+  "moonbitlang/core/string",
+  "moonbitlang/async/fs",
+  "moonbitlang/lexer",
+  "moonbitlang/parser/handrolled_parser",
+  "moonbitlang/parser/syntax",
+}
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/x/path",
+} for "test"
+
+supported_targets = "wasm+native"
