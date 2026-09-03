@@ -28,6 +28,6 @@ description = "Coverage report generation from MoonBit compiler artifacts"
 import {
   "moonbitlang/async@0.20.4",
   "moonbitlang/lexer@0.3.15",
-  "moonbitlang/parser@0.3.18",
-  "moonbitlang/x@0.4.50",
+  "moonbitlang/parser@0.3.19",
+  "moonbitlang/x@0.5.1",
 }
