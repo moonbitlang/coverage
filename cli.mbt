@@ -21,9 +21,9 @@ priv enum OutputFormat {
 ///|
 fn compiler_command() -> @argparse.Command {
   Command(
-    "moon_cove_report",
+    "moon_cove",
     about="Generate reports from MoonBit compiler coverage data.",
-    version="0.3.0",
+    version="0.3.1",
     flags=[
       FlagArg(
         "ignore-missing-files",

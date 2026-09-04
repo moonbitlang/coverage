@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "moonbitlang/moon_cove/cmd/moon_cove_report"
+package "moonbitlang/moon_cove"
 
 // Values
 

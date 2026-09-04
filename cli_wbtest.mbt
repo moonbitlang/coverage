@@ -42,7 +42,7 @@ test "final command exposes all compiler report formats" {
   assert_true(parse_send_target("codecov") is Codecov)
   assert_true(cli_flag(matches, "coveralls-include-git-info"))
   let help = compiler_command().render_help()
-  assert_true(help.contains("Usage: moon_cove_report"))
+  assert_true(help.contains("Usage: moon_cove"))
   for
     format in [
       "bisect", "caret", "simp_caret", "coveralls", "cobertura", "html", "summary",

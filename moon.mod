@@ -13,7 +13,7 @@ name = "moonbitlang/moon_cove"
 
 version = "0.3.1"
 
-readme = "README.mbt.md"
+readme = "README.md"
 
 repository = "https://github.com/moonbitlang/coverage"
 
