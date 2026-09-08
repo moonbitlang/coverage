@@ -108,5 +108,31 @@ async test "CLI writes compiler coverage as Bisect" {
       @fs.read_file(output).text(),
       "BISECT-COVERAGE-4 1 7 cov.mbt 3 44 59 85 3 1 1 0",
     )
+    // Moon coverage analyze prepends its default format to user arguments.
+    for
+      i, formats in [
+        ["-f=simp_caret", "-f=bisect"],
+        ["-f", "simp_caret", "--format", "bisect"],
+        ["--format=summary", "-fbisect"],
+        ["-f=bisect", "-f=summary", "--format=bisect"],
+      ] {
+      let output = path("result-\{i}.coverage")
+      let argv = [
+        path("cov.trace.source"),
+        "-t",
+        path("run.log"),
+        "-o",
+        output,
+        "--source-paths",
+        root,
+      ]
+      argv.append(formats)
+      let matches = compiler_command().parse(argv~, env={})
+      run_compiler_report(matches, current_directory=root)
+      assert_eq(
+        @fs.read_file(output).text(),
+        "BISECT-COVERAGE-4 1 7 cov.mbt 3 44 59 85 3 1 1 0",
+      )
+    }
   })
 }

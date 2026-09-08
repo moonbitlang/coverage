@@ -40,6 +40,9 @@ moon_cove -f coveralls
 moon_cove -f bisect
 ```
 
+Repeated `-f` / `--format` options use the last value, matching the legacy
+reporter. For example, `-f=simp_caret -f=summary` produces a summary.
+
 File-producing formats default to:
 
 - `bisect.coverage`

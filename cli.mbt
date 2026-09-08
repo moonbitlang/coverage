@@ -23,7 +23,7 @@ fn compiler_command() -> @argparse.Command {
   Command(
     "moon_cove",
     about="Generate reports from MoonBit compiler coverage data.",
-    version="0.3.1",
+    version="0.3.2",
     flags=[
       FlagArg(
         "ignore-missing-files",
@@ -48,6 +48,7 @@ fn compiler_command() -> @argparse.Command {
       OptionArg(
         "format",
         short='f',
+        action=Append,
         default_values=["bisect"],
         about="Report format: bisect, caret, simp_caret, coveralls, cobertura, html, summary, full_summary, or sorted_summary.",
       ),
@@ -178,7 +179,11 @@ async fn run_compiler_report(
   matches : @argparse.Matches,
   current_directory? : String = ".",
 ) -> Unit {
-  let format = parse_format(cli_value(matches, "format"))
+  // Preserve the legacy reporter's last-format-wins behavior.
+  guard cli_values(matches, "format") is [.., value] else {
+    raise MissingArgument("format")
+  }
+  let format = parse_format(value)
   let source_paths = cli_value(matches, "source-paths")
     .split(",")
     .map(part => part.to_owned())
