@@ -10,8 +10,11 @@ fn parse_send_target(
 }
 
 ///|
-async fn coveralls_git(matches : @argparse.Matches) -> @coveralls.GitInfo? {
-  if cli_flag(matches, "coveralls-include-git-info") {
+async fn coveralls_git(
+  matches : @argparse.Matches,
+  automatic? : Bool = false,
+) -> @coveralls.GitInfo? {
+  if automatic || cli_flag(matches, "coveralls-include-git-info") {
     Some(@coveralls.collect_git_info())
   } else {
     None
@@ -83,7 +86,7 @@ async fn run_coveralls(
         service_pull_request=cli_value(matches, "service-pull-request"),
         repo_token=cli_value(matches, "coveralls-token"),
       )
-      let git = coveralls_git(matches)
+      let git = coveralls_git(matches, automatic=metadata.include_git)
       let report = render_coveralls(
         matches,
         coverage,

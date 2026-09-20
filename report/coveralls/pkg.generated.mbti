@@ -36,6 +36,7 @@ pub(all) struct UploadMetadata {
   service_job_id : String
   service_pull_request : String
   repo_token : String
+  include_git : Bool
 }
 
 // Type aliases

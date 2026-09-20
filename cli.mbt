@@ -23,7 +23,7 @@ fn compiler_command() -> @argparse.Command {
   Command(
     "moon_cove",
     about="Generate reports from MoonBit compiler coverage data.",
-    version="0.3.2",
+    version="0.3.3",
     flags=[
       FlagArg(
         "ignore-missing-files",

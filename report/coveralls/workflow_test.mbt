@@ -17,6 +17,7 @@ test "CI metadata is inferred from an environment map and explicit values win" {
   assert_eq(github.service_job_id, "88")
   assert_eq(github.service_pull_request, "17")
   assert_eq(github.repo_token, "env-coveralls-token")
+  assert_true(github.include_git)
   let travis = @coveralls.resolve_upload_metadata(
     {
       "TRAVIS": "true",
@@ -31,6 +32,7 @@ test "CI metadata is inferred from an environment map and explicit values win" {
   )
   assert_eq(travis.service_name, "travis-ci")
   assert_eq(travis.service_job_id, "77")
+  assert_false(travis.include_git)
   let gitlab_env = {
     "GITLAB_CI": "true",
     "CI_JOB_ID": "501",
@@ -90,6 +92,7 @@ test "metadata resolution rejects unsupported CI without explicit identity" {
   )
   assert_eq(explicit.service_name, "manual-ci")
   assert_eq(explicit.service_job_id, "manual-job")
+  assert_false(explicit.include_git)
 }
 
 ///|
@@ -139,6 +142,7 @@ test "Coveralls requires a token while Codecov permits tokenless uploads" {
   )
   assert_eq(codecov.repo_token, "")
   assert_eq(codecov.service_pull_request, "")
+  assert_false(codecov.include_git)
   let travis = @coveralls.resolve_upload_metadata(
     { "TRAVIS": "true", "TRAVIS_JOB_ID": "77" },
     Coveralls,
@@ -153,14 +157,16 @@ test "Coveralls requires a token while Codecov permits tokenless uploads" {
 ///|
 test "CircleCI pull request metadata prefers a number and normalizes URLs" {
   let resolve_pr = fn(env : Map[String, String]) raise {
-    @coveralls.resolve_upload_metadata(
+    let metadata = @coveralls.resolve_upload_metadata(
       env,
       Coveralls,
       service_name="",
       service_job_id="",
       service_pull_request="",
       repo_token="",
-    ).service_pull_request
+    )
+    assert_true(metadata.include_git)
+    metadata.service_pull_request
   }
   let base = {
     "CIRCLECI": "true",

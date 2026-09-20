@@ -80,7 +80,9 @@ CircleCI, Travis CI, GitHub Actions, and GitLab CI metadata are detected from
 the environment. Store tokens in `COVERALLS_REPO_TOKEN` or `CODECOV_TOKEN`
 instead of command-line arguments. Explicit `--service-name`,
 `--service-job-id`, and `--service-pull-request` values take precedence.
-Use `--coveralls-include-git-info` to include commit and branch metadata.
+Coveralls uploads from GitHub Actions and CircleCI automatically include commit
+and branch metadata. Use `--coveralls-include-git-info` to include it in local
+reports or other upload environments.
 
 Upload reports are written to a private temporary directory and removed after
 the upload attempt. Local `-f coveralls` output is retained normally.

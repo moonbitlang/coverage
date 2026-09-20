@@ -35,6 +35,7 @@ pub(all) struct UploadMetadata {
   service_job_id : String
   service_pull_request : String
   repo_token : String
+  include_git : Bool
 }
 
 ///|
@@ -198,6 +199,7 @@ pub fn resolve_upload_metadata(
     service_job_id,
     service_pull_request: prefer(service_pull_request, inferred_pull_request),
     repo_token,
+    include_git: target is Coveralls && ci is Some(CircleCI | GitHubActions),
   }
 }
 
