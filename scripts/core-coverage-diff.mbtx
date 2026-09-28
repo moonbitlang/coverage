@@ -1,0 +1,712 @@
+///|
+import {
+  "moonbitlang/async@0.22.4",
+  "moonbitlang/async@0.22.4/fs",
+  "moonbitlang/async@0.22.4/process",
+  "moonbitlang/async@0.22.4/stdio",
+  "moonbitlang/core/argparse",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/core/string",
+  "moonbitlang/x@0.5.1/path",
+  "moonbitlang/x@0.5.1/sys",
+  "moonbitlang/x@0.5.1/time",
+}
+
+///|
+struct Commit {
+  sha : String
+} derive(FromJson)
+
+///|
+struct Selection {
+  date : String
+  start : String
+  end : String
+  snapshot : String
+  commits : Array[Commit]
+} derive(FromJson)
+
+///|
+struct Package {
+  name : String
+  oldFiles : Int
+  newFiles : Int
+  differences : Int
+  advisory : Int
+} derive(FromJson, ToJson)
+
+///|
+struct Comparison {
+  status : String
+  packages : Array[Package]
+  differences : Array[Json]
+} derive(FromJson)
+
+///|
+struct CommitResult {
+  sha : String
+  mut status : String
+  mut packages : Array[Package]
+  mut differences : Array[Json]
+  mut error : String?
+  mut seconds : Int
+} derive(ToJson)
+
+///|
+fn pending(sha : String) -> CommitResult {
+  {
+    sha,
+    status: "pending",
+    packages: [],
+    differences: [],
+    error: None,
+    seconds: 0,
+  }
+}
+
+///|
+fn date_window(
+  date : String,
+  now? : UInt64 = @env.now(),
+) -> (@time.PlainDate, Int64) raise {
+  let date = if date == "" {
+    @time.PlainDate::from_unix_day(
+      (now.reinterpret_as_int64() / 1000 + 28800) / 86400 - 1,
+    )
+  } else {
+    let parsed : @time.PlainDate = @string.FromStr::from_str(date)
+    guard parsed.to_string() == date && date.length() == 10 else {
+      fail("Date must be YYYY-MM-DD")
+    }
+    parsed
+  }
+  (date, date.to_unix_day() * 86400 - 28800)
+}
+
+///|
+async fn text(
+  program : String,
+  args : Array[String],
+  cwd? : StringView,
+  extra_env? : Map[String, String],
+) -> String {
+  let (code, output, error) = @async.with_timeout(60000, () => {
+    @process.collect_output(program, args, cwd?, extra_env?)
+  })
+  guard code == 0 else { fail("\{program}: exit \{code}: \{error.text()}") }
+  output.text().trim().to_owned()
+}
+
+///|
+async fn write_json(file : String, value : Json) -> Unit {
+  @fs.write_file(
+    file,
+    value.stringify(indent=2) + "\n",
+    create_mode=CreateOrTruncate,
+  )
+}
+
+///|
+async fn read_json(file : String) -> Json {
+  @json.parse(@fs.read_file(file).text())
+}
+
+///|
+async fn select_commits(core : String, date : String) -> Json {
+  guard text("git", ["rev-parse", "--is-shallow-repository"], cwd=core) ==
+    "false" else {
+    fail("Commit selection requires full history; fetch with --unshallow first")
+  }
+  let (date, start_second) = date_window(date)
+  let start = date.add_days(-1).to_string() + "T16:00:00.000Z"
+  let end = date.to_string() + "T16:00:00.000Z"
+  let snapshot = text("git", ["rev-parse", "HEAD"], cwd=core)
+  let log = text(
+    "git",
+    [
+      "log",
+      "--reverse",
+      "--format=%H %ct",
+      "--since-as-filter=\{start}",
+      snapshot,
+    ],
+    cwd=core,
+  )
+  let commits : Array[Json] = []
+  for line in log.split("\n") {
+    if line.is_empty() {
+      continue
+    }
+    guard line.split_once(" ") is Some((sha, seconds)) else {
+      fail("Invalid git log entry")
+    }
+    let timestamp = @string.parse_int64(seconds)
+    if timestamp >= start_second && timestamp < start_second + 86400 {
+      commits.push({
+        "sha": Json(sha),
+        "timestamp": Json::number((timestamp * 1000).to_double()),
+      })
+    }
+  }
+  {
+    "date": Json(date.to_string()),
+    "timezone": "Asia/Shanghai",
+    "start": Json(start),
+    "end": Json(end),
+    "snapshot": Json(snapshot),
+    "commits": Json(commits),
+  }
+}
+
+///|
+async fn command(
+  program : String,
+  args : Array[String],
+  cwd : String,
+  log : String,
+  timeout? : Int = 300000,
+) -> Unit {
+  @fs.write_file(
+    log,
+    "$ " + Json([program, ..args]).stringify() + "\n",
+    create_mode=OpenOrCreate,
+    append=true,
+  )
+  let output = @process.redirect_to_file(
+    log,
+    append=true,
+    create_mode=OpenExisting,
+  )
+  // async/process cancels only its direct child. Bash monitor mode gives the
+  // command its own process group; the EXIT trap also reaps compiler/test children.
+  let wrapper =
+    #|set -m
+    #|trap 'test -z "${child:-}" || kill -KILL -- "-$child" 2>/dev/null || true' EXIT
+    #|trap 'exit 124' TERM INT
+    #|"$@" &
+    #|child=$!
+    #|wait "$child"
+  let code = @async.with_timeout(timeout, () => {
+    @process.run(
+      "bash",
+      ["-c", wrapper, "coverage-command", program, ..args],
+      cwd~,
+      stdout=output,
+      stderr=output,
+      cancel_handler=@process.graceful_cancel(timeout=1000),
+    )
+  })
+  guard code == 0 else { fail("\{log}: exit \{code}") }
+}
+
+///|
+async fn save_inputs(root : String, output : String) -> Unit {
+  for build in ["_build", "target"] {
+    if !@fs.exists("\{root}/\{build}") {
+      continue
+    }
+    @fs.walk("\{root}/\{build}", (directory, files) => {
+      for name in files {
+        if !name.has_suffix(".trace.source") &&
+          !name.has_prefix("moonbit_coverage_") {
+          continue
+        }
+        let relative = @path.Path(directory)
+          .relative(base=Path(root))
+          .to_string()
+        let destination = "\{output}/inputs/\{relative}"
+        @fs.mkdir(destination, recursive=true, allow_exist=true)
+        @fs.write_file(
+          "\{destination}/\{name}",
+          @fs.read_file("\{directory}/\{name}"),
+          create_mode=CreateNew,
+        )
+      }
+    })
+  }
+}
+
+///|
+fn summary(
+  selection : Selection,
+  target : String,
+  results : Array[CommitResult],
+) -> String {
+  let lines = [
+    "# Core Coveralls differential: \{selection.date}",
+    "",
+    "Target: `\{target}`. Window: \{selection.start} ≤ committer time < \{selection.end}.",
+    "Core snapshot: `\{selection.snapshot}`. Selected commits: \{selection.commits.length()}.",
+    "",
+    "| Commit | Status | Packages | Unexpected differences | Advisory differences |",
+    "| --- | --- | ---: | ---: | ---: |",
+  ]
+  for result in results {
+    let short = result.sha[:10]
+    let advisory = result.differences
+      .iter()
+      .filter(d => d is { "advisory": true, .. })
+      .count()
+    let unexpected = result.differences.length() - advisory
+    let stats = if result.status is ("pending" | "error") {
+      "- | - | -"
+    } else {
+      "\{result.packages.length()} | \{unexpected} | \{advisory}"
+    }
+    lines.push(
+      "| [\{short}](https://github.com/moonbitlang/core/commit/\{result.sha}) | \{result.status} | \{stats} |",
+    )
+  }
+  if results.is_empty() {
+    lines.push("\nNo commits in this window. No coverage tests were run.")
+  }
+  for result in results {
+    if result.error is Some(error) {
+      lines.push("\nError for \{result.sha}: \{error}")
+    }
+    let changed = result.packages.filter(p => p.differences > 0)
+    if changed.is_empty() {
+      continue
+    }
+    lines.append([
+      "",
+      "## \{result.sha[:10]}: changed packages",
+      "",
+      "| Package | Old/new files | Unexpected | Advisory |",
+      "| --- | ---: | ---: | ---: |",
+    ])
+    for pkg in changed {
+      lines.push(
+        "| \{pkg.name} | \{pkg.oldFiles}/\{pkg.newFiles} | \{pkg.differences - pkg.advisory} | \{pkg.advisory} |",
+      )
+    }
+  }
+  lines.append([
+    "", "Coverage counts/file presence in `moonbitlang/core/coverage` and old duplicate `coverage/coverage.mbt` entries are advisory.",
+    "An error or pending commit is inconclusive, not a match. Full per-package and per-line details are in the artifacts.",
+    "",
+  ])
+  lines.join("\n")
+}
+
+///|
+async fn save_results(
+  output : String,
+  selection : Selection,
+  target : String,
+  results : Array[CommitResult],
+) -> Unit {
+  write_json("\{output}/results.json", Json(results))
+  @fs.write_file(
+    "\{output}/summary.md",
+    summary(selection, target, results),
+    create_mode=CreateOrTruncate,
+  )
+}
+
+///|
+async fn run_commit(
+  core : String,
+  output : String,
+  target : String,
+  old : String,
+  new : String,
+  comparator : String,
+  date : String,
+  result : CommitResult,
+) -> Unit {
+  let directory = "\{output}/\{result.sha}"
+  @fs.mkdir(directory)
+  let temporary = @fs.tmpdir(prefix="core-coverage-")
+  let checkout = "\{temporary}/core"
+  let started = @env.now()
+  println("Checking \{result.sha} (\{target})")
+  try {
+    ignore(
+      text("git", [
+        "clone", "--quiet", "--shared", "--no-checkout", core, checkout,
+      ]),
+    )
+    ignore(
+      text("git", ["checkout", "--quiet", "--detach", result.sha], cwd=checkout),
+    )
+    command(
+      "moon",
+      ["test", "--target", target, "--enable-coverage"],
+      checkout,
+      "\{directory}/test.log",
+      timeout=1200000,
+    )
+    let args = [
+      "-f",
+      "coveralls",
+      "--service-name",
+      "differential",
+      "--service-number",
+      date,
+      "--service-job-id",
+      result.sha,
+      "--coveralls-include-git-info",
+    ]
+    let errors : Array[String] = []
+    for
+      (side, program, prefix) in [
+        ("old", old, []),
+        ("new", "moonrun", [new, "--"]),
+      ] {
+      command(
+        program,
+        [..prefix, ..args, "-o", "\{directory}/\{side}.coveralls.json"],
+        checkout,
+        "\{directory}/\{side}.log",
+      ) catch {
+        error => errors.push("\{error}")
+      }
+    }
+    guard errors.is_empty() else { fail(errors.join("; ")) }
+    command(
+      "moon",
+      [
+        "run",
+        "--target",
+        "native",
+        comparator,
+        "--",
+        checkout,
+        "\{directory}/old.coveralls.json",
+        "\{directory}/new.coveralls.json",
+        result.sha,
+        "\{directory}/diff.json",
+      ],
+      @path.Path(comparator).dirname().to_string(),
+      "\{directory}/compare.log",
+    )
+    let compared : Comparison = @json.from_json(
+      read_json("\{directory}/diff.json"),
+    )
+    result.status = compared.status
+    result.packages = compared.packages
+    result.differences = compared.differences
+  } catch {
+    error => {
+      result.status = "error"
+      result.error = Some("\{error}")
+    }
+  }
+  try {
+    if result.status != "equal" {
+      save_inputs(checkout, directory)
+    }
+    // Only remove this invocation's disposable clone, after preserving evidence.
+    @fs.rmdir(temporary, recursive=true)
+  } catch {
+    error => {
+      result.status = "error"
+      result.error = Some(
+        "\{result.error.unwrap_or("")} Evidence/cleanup failure; checkout retained at \{temporary}: \{error}",
+      )
+    }
+  }
+  result.seconds = ((@env.now() - started) / 1000).to_int()
+  write_json("\{directory}/diff.json", Json(result))
+  println("\{result.sha}: \{result.status}")
+}
+
+///|
+async fn sha256(file : String) -> Json {
+  let output = text("openssl", ["dgst", "-sha256", "-r", file])
+  guard output.split_once(" ") is Some((hash, _)) && hash.length() == 64 else {
+    fail("Invalid SHA-256 output")
+  }
+  { "path": Json(file), "sha256": Json(hash) }
+}
+
+///|
+async fn run_comparisons(
+  core : String,
+  output : String,
+  target : String,
+  old : String,
+  new : String,
+  comparator : String,
+) -> Int {
+  guard !@fs.exists("\{output}/results.json") else {
+    fail("Use a fresh output directory for each run")
+  }
+  let selection : Selection = @json.from_json(
+    read_json("\{output}/selection.json"),
+  )
+  let results = selection.commits.map(c => pending(c.sha))
+  save_results(output, selection, target, results)
+  write_json("\{output}/provenance.json", {
+    "reporterCommit": Json(
+      text(
+        "git",
+        ["rev-parse", "HEAD"],
+        cwd=@path.Path(comparator).dirname().to_string(),
+      ),
+    ),
+    "toolchain": Json(text("moon", ["version", "--all"])),
+    "runtime": Json(text("moonrun", ["--version"])),
+    "target": Json(target),
+    "oldReporter": sha256(old),
+    "newReporter": sha256(new),
+  })
+  for result in results {
+    run_commit(
+      core,
+      output,
+      target,
+      old,
+      new,
+      comparator,
+      selection.date,
+      result,
+    )
+    save_results(output, selection, target, results)
+  }
+  if results.any(r => !(r.status is ("equal" | "advisory"))) {
+    1
+  } else {
+    0
+  }
+}
+
+///|
+async fn main {
+  try {
+    let matches = @argparse.Command(
+      "core-coverage-diff",
+      positionals=[PositionArg("phase")],
+      options=[
+        OptionArg("core", default_values=["core"]),
+        OptionArg("output", default_values=["coverage-diff"]),
+        OptionArg("date", default_values=[""]),
+        OptionArg("target", default_values=["wasm"]),
+        OptionArg("old-reporter"),
+        OptionArg("new-reporter"),
+        OptionArg("compare-script", default_values=[
+          "scripts/compare-coveralls.mbtx",
+        ]),
+      ],
+    ).parse()
+    fn value(key : String) -> String raise {
+      guard matches.values.get(key) is Some([value, ..]) else {
+        fail("Missing argument: \{key}")
+      }
+      value
+    }
+    let core = @fs.realpath(value("core"))
+    let output = @path.Path(value("output")).resolve().to_string()
+    let target = value("target")
+    guard target is ("wasm" | "wasm-gc" | "js" | "native") else {
+      fail("Unsupported target: \{target}")
+    }
+    match value("phase") {
+      "select" => {
+        @fs.mkdir(output)
+        let raw = select_commits(core, value("date"))
+        let selected : Selection = @json.from_json(raw)
+        write_json("\{output}/selection.json", raw)
+        @fs.write_file(
+          "\{output}/summary.md",
+          summary(selected, target, selected.commits.map(c => pending(c.sha))),
+          create_mode=CreateNew,
+        )
+        if @env.get_env_var("GITHUB_OUTPUT") is Some(path) {
+          @fs.write_file(
+            path,
+            "count=\{selected.commits.length()}\ndate=\{selected.date}\n",
+            append=true,
+            create_mode=OpenOrCreate,
+          )
+        }
+        println(
+          "Selected \{selected.commits.length()} commits for \{selected.date} (Asia/Shanghai)",
+        )
+      }
+      "run" =>
+        @sys.exit(
+          run_comparisons(
+            core,
+            output,
+            target,
+            @fs.realpath(value("old-reporter")),
+            @fs.realpath(value("new-reporter")),
+            @fs.realpath(value("compare-script")),
+          ),
+        )
+      _ => fail("Expected select or run")
+    }
+  } catch {
+    error => {
+      @stdio.stderr.write("\{error}\n")
+      @sys.exit(1)
+    }
+  }
+}
+
+///|
+async fn history() -> (String, Array[String]) {
+  let root = @fs.tmpdir(prefix="coverage-history-")
+  @fs.mkdir("\{root}/builtin")
+  @fs.write_file("\{root}/builtin/moon.pkg", "", create_mode=CreateNew)
+  @fs.write_file("\{root}/builtin/value.mbt", "hello\n", create_mode=CreateNew)
+  ignore(text("git", ["init", "-q"], cwd=root))
+  let commits : Array[String] = []
+  // The middle ancestor is backdated, and the last commit is the next midnight.
+  for
+    i, date in [
+      "2026-09-07T16:00:00Z", "2026-09-07T15:59:59Z", "2026-09-08T15:59:59Z", "2026-09-08T16:00:00Z",
+    ] {
+    @fs.write_file(
+      "\{root}/revision",
+      i.to_string(),
+      create_mode=CreateOrTruncate,
+    )
+    ignore(text("git", ["add", "."], cwd=root))
+    ignore(
+      text(
+        "git",
+        [
+          "-c",
+          "user.name=Coverage test",
+          "-c",
+          "user.email=test@example.invalid",
+          "-c",
+          "commit.gpgsign=false",
+          "commit",
+          "-qm",
+          "Revision \{i}",
+        ],
+        cwd=root,
+        extra_env={
+          "GIT_AUTHOR_DATE": "2025-01-01T00:00:00Z",
+          "GIT_COMMITTER_DATE": date,
+        },
+      ),
+    )
+    commits.push(text("git", ["rev-parse", "HEAD"], cwd=root))
+  }
+  (@fs.realpath(root), commits)
+}
+
+///|
+async test "Shanghai date selection includes all in-window ancestors and excludes the next midnight" {
+  let (root, commits) = history()
+  defer @fs.rmdir(root, recursive=true)
+  let (date, start) = date_window("", now=1788883260000UL)
+  assert_eq(date.to_string(), "2026-09-08")
+  assert_eq(start, 1788796800L)
+  try date_window("2026-02-30") catch {
+    _ => ()
+  } noraise {
+    _ => fail("Expected invalid date")
+  }
+  let selected : Selection = @json.from_json(select_commits(root, "2026-09-08"))
+  assert_eq(selected.snapshot, commits[3])
+  assert_eq(selected.commits.map(c => c.sha), [commits[0], commits[2]])
+  let empty : Selection = @json.from_json(select_commits(root, "2026-09-10"))
+  assert_true(empty.commits.is_empty())
+}
+
+///|
+async test "command timeout cleans up descendants instead of leaving a background test" {
+  let root = @fs.tmpdir(prefix="coverage-timeout-")
+  defer @fs.rmdir(root, recursive=true)
+  let marker = "\{root}/survived"
+  try
+    command(
+      "sh",
+      ["-c", "(sleep 0.5; touch \"$1\") & wait", "test-child", marker],
+      root,
+      "\{root}/command.log",
+      timeout=100,
+    )
+  catch {
+    _ => ()
+  } noraise {
+    _ => fail("Expected a timeout")
+  }
+  @async.sleep(700)
+  assert_false(@fs.exists(marker))
+  assert_true(@fs.read_file("\{root}/command.log").text().has_prefix("$ ["))
+}
+
+///|
+async test "failed old reporter still runs the new reporter, preserves inputs, and continues" {
+  let comparator = @fs.realpath("compare-coveralls.mbtx")
+  let real_moon = text("sh", ["-c", "command -v moon"])
+  let (root, commits) = history()
+  defer @fs.rmdir(root, recursive=true)
+  let output = "\{root}/results"
+  let bin = "\{root}/bin"
+  @fs.mkdir(output)
+  @fs.mkdir(bin)
+  write_json("\{output}/selection.json", select_commits(root, "2026-09-08"))
+  let moon =
+    #|#!/bin/sh
+    #|case "$1" in
+    #|  version) echo fixture ;;
+    #|  run) exec "$COVE_TEST_REAL_MOON" "$@" ;;
+    #|  test)
+    #|    mkdir _build
+    #|    printf 'same input' > _build/moonbit_coverage_1.txt
+    #|    printf metadata > _build/package.trace.source ;;
+    #|  *) exit 9 ;;
+    #|esac
+  let reporter =
+    #|#!/bin/sh
+    #|if [ "$1" = --version ]; then echo fixture; exit; fi
+    #|[ "$(cat _build/moonbit_coverage_1.txt)" = 'same input' ] || exit 9
+    #|case "$0" in */old) [ "$(cat revision)" != 0 ] || exit 2 ;; esac
+    #|while [ "$#" -gt 0 ]; do
+    #|  if [ "$1" = -o ]; then output=$2; shift 2; else shift; fi
+    #|done
+    #|sha=$(git rev-parse HEAD)
+    #|printf '{"git":{"head":{"id":"%s"}},"source_files":[{"name":"builtin/value.mbt","source_digest":"b1946ac92492d2347c6235b4d2611184","coverage":[null,1]}]}' "$sha" > "$output"
+  @fs.write_file("\{bin}/moon", moon, create_mode=CreateNew, permission=0o755)
+  for name in ["old", "moonrun"] {
+    @fs.write_file(
+      "\{bin}/\{name}",
+      reporter,
+      create_mode=CreateNew,
+      permission=0o755,
+    )
+  }
+  let previous = @env.get_env_vars()
+  @env.set_env_var("PATH", "\{bin}:\{previous["PATH"]}")
+  @env.set_env_var("COVE_TEST_REAL_MOON", real_moon)
+  defer (for name in ["PATH", "COVE_TEST_REAL_MOON"] {
+    match previous.get(name) {
+      Some(value) => @env.set_env_var(name, value)
+      None => @env.unset_env_var(name)
+    }
+  })
+  assert_eq(
+    run_comparisons(
+      root,
+      output,
+      "wasm",
+      "\{bin}/old",
+      "\{bin}/moonrun",
+      comparator,
+    ),
+    1,
+  )
+  guard read_json("\{output}/results.json")
+    is [{ "status": "error", .. }, { "status": "equal", .. }] else {
+    fail("Failed to continue after a reporter failure")
+  }
+  assert_eq(
+    @fs.read_file(
+      "\{output}/\{commits[0]}/inputs/_build/moonbit_coverage_1.txt",
+    ).text(),
+    "same input",
+  )
+  assert_true(
+    read_json("\{output}/\{commits[0]}/new.coveralls.json")
+    is { "source_files": [_, ..], .. },
+  )
+}

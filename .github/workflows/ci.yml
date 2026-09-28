@@ -21,6 +21,12 @@ jobs:
       - name: Resolve dependencies
         run: moon update
 
+      - name: Test differential scripts
+        run: |
+          moon fmt --check scripts/compare-coveralls.mbtx scripts/core-coverage-diff.mbtx
+          moon test scripts/compare-coveralls.mbtx --target native
+          moon test scripts/core-coverage-diff.mbtx --target native
+
       - name: Check all targets
         run: moon check --target all --warn-list +73
 

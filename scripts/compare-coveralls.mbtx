@@ -1,0 +1,512 @@
+///|
+import {
+  "moonbitlang/async@0.22.4",
+  "moonbitlang/async@0.22.4/fs",
+  "moonbitlang/async@0.22.4/process",
+  "moonbitlang/async@0.22.4/stdio",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/core/string",
+  "moonbitlang/x@0.5.1/path",
+  "moonbitlang/x@0.5.1/sys",
+}
+
+///|
+struct Source {
+  raw : Json
+  fields : Json
+  counts : Array[Int64?]
+}
+
+///|
+struct Package {
+  name : String
+  mut oldFiles : Int
+  mut newFiles : Int
+  mut differences : Int
+  mut advisory : Int
+} derive(ToJson)
+
+///|
+fn without(value : Json, field : String) -> Json raise {
+  guard value is Object(fields) else { fail("Expected an object") }
+  let fields = fields.copy()
+  fields.remove(field)
+  Json::object(fields)
+}
+
+///|
+fn count(value : Json) -> Int64? raise {
+  match value {
+    Null => None
+    Number(n, repr~) => {
+      // Preserve integer tokens exactly, including values above 2^53.
+      let integer = match repr {
+        Some(text) if text.iter().all(c => c is ('0'..='9')) =>
+          @string.parse_int64(text)
+        _ if n >= 0 && n <= 9007199254740991.0 && n.to_int64().to_double() == n =>
+          n.to_int64()
+        _ => fail("Coverage counts must be nonnegative Int64 integers")
+      }
+      Some(integer)
+    }
+    _ => fail("Coverage entries must be integers or null")
+  }
+}
+
+///|
+async fn package_of(root : String, name : String) -> String {
+  guard name != "" &&
+    !@path.Path(name).is_absolute() &&
+    !name.split("/").any(p => p == "." || p == ".." || p == "") else {
+    fail("Non-relative source path: \{name}")
+  }
+  for directory = @path.Path(name).dirname().to_string() {
+    if directory == "." || directory == "" {
+      break "moonbitlang/core"
+    }
+    if @fs.exists("\{root}/\{directory}/moon.pkg") ||
+      @fs.exists("\{root}/\{directory}/moon.pkg.json") {
+      break "moonbitlang/core/\{directory}"
+    }
+    continue @path.Path(directory).dirname().to_string()
+  }
+}
+
+///|
+async fn md5(file : String) -> String {
+  let (code, output, error) = @async.with_timeout(30000, () => {
+    @process.collect_output("openssl", ["dgst", "-md5", "-r", file])
+  })
+  guard code == 0 else { fail("openssl: \{error.text()}") }
+  guard output.text().split_once(" ") is Some((digest, _)) &&
+    digest.length() == 32 else {
+    fail("Invalid OpenSSL digest output")
+  }
+  digest.to_owned()
+}
+
+///|
+async fn index_report(
+  report : Json,
+  side : String,
+  root : String,
+  sha : String,
+  packages : Map[String, Package],
+  digests : Map[String, String],
+) -> Map[String, Array[Source]] {
+  guard report
+    is {
+      "source_files": Array(files),
+      "git": { "head": { "id": String(id), .. }, .. },
+      ..
+    } &&
+    !files.is_empty() &&
+    id == sha else {
+    fail("\{side}: empty report or Git HEAD does not match \{sha}")
+  }
+  let indexed : Map[String, Array[Source]] = Map([])
+  for file in files {
+    guard file
+      is {
+        "name": String(name),
+        "source_digest": String(digest),
+        "coverage": Array(coverage),
+        ..
+      } else {
+      fail("\{side}: invalid source file")
+    }
+    let pkg = package_of(root, name)
+    let entries = indexed.get_or_init(name, () => [])
+    guard entries.is_empty() ||
+      (
+        side == "old" &&
+        name == "coverage/coverage.mbt" &&
+        pkg == "moonbitlang/core/coverage"
+      ) else {
+      fail("\{side}: duplicate source name: \{name}")
+    }
+    let source = @fs.realpath("\{root}/\{name}")
+    guard source.has_prefix(root + "/") else {
+      fail("Source escapes checkout: \{name}")
+    }
+    let expected = match digests.get(name) {
+      Some(value) => value
+      None => {
+        let value = md5(source)
+        digests[name] = value
+        value
+      }
+    }
+    guard digest == expected else {
+      fail("\{side}: source digest does not match checkout: \{name}")
+    }
+    entries.push({
+      raw: file,
+      fields: without(file, "coverage"),
+      counts: coverage.map(count),
+    })
+    let stats = packages.get_or_init(pkg, () => {
+      name: pkg,
+      oldFiles: 0,
+      newFiles: 0,
+      differences: 0,
+      advisory: 0,
+    })
+    if side == "old" {
+      stats.oldFiles += 1
+    } else {
+      stats.newFiles += 1
+    }
+  }
+  indexed
+}
+
+///|
+fn metadata(report : Json) -> Json raise {
+  let result = without(report, "source_files")
+  if result is Object(fields) && fields.get("git") is Some(Object(git)) {
+    let git = git.copy()
+    if git.get("remotes") is Some(Object(remotes)) && remotes.is_empty() {
+      git["remotes"] = []
+    }
+    fields["git"] = Json::object(git)
+  }
+  result
+}
+
+///|
+async fn compare(old : Json, new : Json, root : String, sha : String) -> Json {
+  let root = @fs.realpath(root)
+  let packages : Map[String, Package] = Map([])
+  let digests : Map[String, String] = Map([])
+  let old_files = index_report(old, "old", root, sha, packages, digests)
+  let new_files = index_report(new, "new", root, sha, packages, digests)
+  let differences : Array[Json] = []
+  let old_meta = metadata(old)
+  let new_meta = metadata(new)
+  if old_meta != new_meta {
+    differences.push({
+      "kind": "metadata",
+      "old": old_meta,
+      "new": new_meta,
+      "advisory": false,
+    })
+  }
+  let names = old_files.keys().to_array()
+  for name in new_files.keys() {
+    if !old_files.contains(name) {
+      names.push(name)
+    }
+  }
+  names.sort()
+  for name in names {
+    let olds = old_files.get(name).unwrap_or([])
+    let news = new_files.get(name).unwrap_or([])
+    let pkg = package_of(root, name)
+    fn add(kind : String, old : Json, new : Json, line : Int?) {
+      let advisory = pkg == "moonbitlang/core/coverage" &&
+        kind is ("presence" | "length" | "line" | "duplicate-source")
+      let fields : Map[String, Json] = {
+        "package": Json(pkg),
+        "file": Json(name),
+        "kind": Json(kind),
+        "old": old,
+        "new": new,
+        "advisory": Json(advisory),
+      }
+      if line is Some(n) {
+        fields["line"] = Json(n)
+      }
+      differences.push(Json::object(fields))
+      packages[pkg].differences += 1
+      if advisory {
+        packages[pkg].advisory += 1
+      }
+    }
+    // Old self-coverage can contain two entries. Preserve both, without merging.
+    if olds.length() > 1 {
+      add(
+        "duplicate-source",
+        Json(olds.map(s => s.raw)),
+        Json(news.map(s => s.raw)),
+        None,
+      )
+    }
+    guard olds is [old, ..] && news is [new, ..] else {
+      add("presence", Json(!olds.is_empty()), Json(!news.is_empty()), None)
+      continue
+    }
+    for entry in olds {
+      if entry.fields != new.fields {
+        add("source", entry.fields, new.fields, None)
+      }
+    }
+    if olds.length() > 1 {
+      continue
+    }
+    if old.counts.length() != new.counts.length() {
+      add("length", Json(old.counts.length()), Json(new.counts.length()), None)
+    }
+    fn value_at(source : Source, i : Int) -> Json {
+      match source.counts.get(i) {
+        None => "absent"
+        Some(None) => Json::null()
+        Some(Some(n)) => Json::number(n.to_double(), repr=n.to_string())
+      }
+    }
+    let length = if old.counts.length() > new.counts.length() {
+      old.counts.length()
+    } else {
+      new.counts.length()
+    }
+    for i in 0..<length {
+      if old.counts.get(i) != new.counts.get(i) {
+        add("line", value_at(old, i), value_at(new, i), Some(i + 1))
+      }
+    }
+  }
+  let status = if differences.any(d => d is { "advisory": false, .. }) {
+    "different"
+  } else if differences.is_empty() {
+    "equal"
+  } else {
+    "advisory"
+  }
+  let packages = packages.values().to_array()
+  packages.sort_by((a, b) => a.name.compare(b.name))
+  {
+    "status": Json(status),
+    "packages": Json(packages),
+    "differences": Json(differences),
+  }
+}
+
+///|
+async fn main {
+  try {
+    guard @env.args() is [_, root, old, new, sha, output] else {
+      fail("Usage: compare-coveralls.mbtx ROOT OLD.json NEW.json SHA DIFF.json")
+    }
+    let result = compare(
+      @json.parse(@fs.read_file(old).text()),
+      @json.parse(@fs.read_file(new).text()),
+      root,
+      sha,
+    )
+    @fs.write_file(
+      output,
+      result.stringify(indent=2) + "\n",
+      create_mode=CreateNew,
+    )
+  } catch {
+    error => {
+      @stdio.stderr.write("\{error}\n")
+      @sys.exit(1)
+    }
+  }
+}
+
+///|
+fn source(name : String, coverage : Array[Json]) -> Json {
+  {
+    "name": Json(name),
+    "source_digest": "b1946ac92492d2347c6235b4d2611184",
+    "coverage": Json(coverage),
+  }
+}
+
+///|
+fn report(files : Array[Json], remotes? : Json = []) -> Json {
+  {
+    "git": {
+      "head": { "id": "revision" },
+      "branch": "HEAD",
+      "remotes": remotes,
+    },
+    "source_files": Json(files),
+  }
+}
+
+///|
+async fn fixture() -> String {
+  let root = @fs.tmpdir(prefix="coveralls-test-")
+  for pkg in ["builtin", "coverage", "coverage_extra"] {
+    @fs.mkdir("\{root}/\{pkg}")
+    @fs.write_file("\{root}/\{pkg}/moon.pkg", "", create_mode=CreateNew)
+    @fs.write_file("\{root}/\{pkg}/value.mbt", "hello\n", create_mode=CreateNew)
+  }
+  @fs.rename("\{root}/coverage/value.mbt", "\{root}/coverage/coverage.mbt")
+  @fs.realpath(root)
+}
+
+///|
+async fn[T] expect_error(action : async () -> T, contains? : String) -> Unit {
+  try action() catch {
+    error =>
+      if contains is Some(message) {
+        assert_true(error.to_string().contains(message))
+      }
+  } noraise {
+    _ => fail("Expected an error")
+  }
+}
+
+///|
+async test "comparison preserves line semantics, missing files, metadata, and the exact advisory boundary" {
+  let root = fixture()
+  defer @fs.rmdir(root, recursive=true)
+  let builtin = source("builtin/value.mbt", [null, 0, 5])
+  let coverage = source("coverage/coverage.mbt", [null, 0, 5])
+  let extra = source("coverage_extra/value.mbt", [null, 0, 5])
+  let old = report([builtin, coverage, extra])
+  assert_true(
+    compare(
+      old,
+      report([extra, coverage, builtin], remotes={}),
+      root,
+      "revision",
+    )
+    is { "status": "equal", .. },
+  )
+  let changed = report([builtin, source("coverage/coverage.mbt", [0, 2]), extra])
+  let result = compare(old, changed, root, "revision")
+  guard result
+    is { "status": "advisory", "differences": Array(differences), .. } else {
+    fail("Expected advisory")
+  }
+  assert_eq(differences.length(), 4)
+  assert_true(
+    differences.last()
+    is Some(
+      {
+        "kind": "line",
+        "line": 3,
+        "old": 5,
+        "new": "absent",
+        "advisory": true,
+        ..
+      }
+    ),
+  )
+  assert_true(
+    compare(old, report([builtin, extra]), root, "revision")
+    is { "status": "advisory", .. },
+  )
+  let changed = report([
+    coverage,
+    source("coverage_extra/value.mbt", [null, 0, 5, null]),
+  ])
+  guard compare(old, changed, root, "revision")
+    is { "status": "different", "differences": Array(differences), .. } else {
+    fail("Expected unexpected differences")
+  }
+  assert_true(
+    differences.any(d => {
+      d
+      is {
+        "file": "builtin/value.mbt",
+        "kind": "presence",
+        "advisory": false,
+        ..
+      }
+    }),
+  )
+  assert_true(
+    differences.any(d => {
+      d
+      is {
+        "package": "moonbitlang/core/coverage_extra",
+        "kind": "length",
+        "advisory": false,
+        ..
+      }
+    }),
+  )
+  let changed = report([builtin, coverage, extra], remotes=[
+    { "name": "origin" },
+  ])
+  assert_true(
+    compare(old, changed, root, "revision")
+    is {
+      "status": "different",
+      "differences": [{ "kind": "metadata", .. }],
+      ..
+    },
+  )
+}
+
+///|
+async test "only old self-coverage duplicates are advisory; invalid evidence always fails" {
+  let root = fixture()
+  defer @fs.rmdir(root, recursive=true)
+  let builtin = source("builtin/value.mbt", [null, 0, 5])
+  let coverage = source("coverage/coverage.mbt", [null, 0, 5])
+  let good = report([builtin, coverage])
+  let duplicate = report([
+    builtin,
+    coverage,
+    source("coverage/coverage.mbt", [3]),
+  ])
+  assert_true(
+    compare(duplicate, good, root, "revision")
+    is {
+      "status": "advisory",
+      "differences": [{ "kind": "duplicate-source", "old": [_, _], .. }],
+      ..
+    },
+  )
+  expect_error(
+    () => compare(good, duplicate, root, "revision"),
+    contains="duplicate",
+  )
+  expect_error(
+    () => compare(report([builtin, builtin]), good, root, "revision"),
+    contains="duplicate",
+  )
+  expect_error(
+    () => compare(report([]), good, root, "revision"),
+    contains="empty report",
+  )
+  expect_error(
+    () => compare(good, good, root, "wrong-sha"),
+    contains="Git HEAD",
+  )
+  expect_error(
+    () => compare(report([source("../escape.mbt", [])]), good, root, "revision"),
+    contains="Non-relative",
+  )
+  guard coverage is Object(fields) else { fail("Expected object") }
+  fields["source_digest"] = "00000000000000000000000000000000"
+  expect_error(
+    () => compare(duplicate, good, root, "revision"),
+    contains="source digest",
+  )
+}
+
+///|
+async test "large counters remain exact and invalid integers are rejected" {
+  let root = fixture()
+  defer @fs.rmdir(root, recursive=true)
+  let a = @json.parse("9007199254740992")
+  let b = @json.parse("9007199254740993")
+  assert_eq(count(b), Some(9007199254740993L))
+  let result = compare(
+    report([source("builtin/value.mbt", [a])]),
+    report([source("builtin/value.mbt", [b])]),
+    root,
+    "revision",
+  )
+  guard result
+    is {
+      "status": "different",
+      "differences": [{ "kind": "line", "new": value, .. }],
+      ..
+    } else {
+    fail("Large counters must differ")
+  }
+  assert_eq(value.stringify(), "9007199254740993")
+  for invalid in ["-1", "1.5", "9223372036854775808", "true"] {
+    expect_error(() => count(@json.parse(invalid)))
+  }
+}

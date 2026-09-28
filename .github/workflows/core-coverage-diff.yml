@@ -1,0 +1,92 @@
+name: Core coverage differential
+
+on:
+  schedule:
+    # 00:37 Asia/Shanghai; check the previous complete calendar day.
+    - cron: '37 16 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Commit date in Asia/Shanghai (YYYY-MM-DD; empty = previous day)'
+        type: string
+        default: ''
+      target:
+        description: 'Instrumentation/test target'
+        type: choice
+        default: wasm
+        options: [wasm, wasm-gc, js, native]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: core-coverage-${{ github.ref }}-${{ inputs.date || 'daily' }}-${{ inputs.target || 'wasm' }}
+  cancel-in-progress: false
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    defaults:
+      run:
+        working-directory: reporter
+    env:
+      COVERAGE_DATE: ${{ inputs.date || '' }}
+      COVERAGE_TARGET: ${{ inputs.target || 'wasm' }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: reporter
+          persist-credentials: false
+
+      - uses: actions/checkout@v6
+        with:
+          repository: moonbitlang/core
+          ref: main
+          fetch-depth: 0
+          path: core
+          persist-credentials: false
+
+      - name: Set up MoonBit nightly
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- nightly
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Resolve dependencies
+        run: moon update
+
+      - name: Select core commits
+        id: select
+        run: |
+          moon run scripts/core-coverage-diff.mbtx --target native -- select \
+            --core "$GITHUB_WORKSPACE/core" --output "$GITHUB_WORKSPACE/coverage-diff" \
+            --date "$COVERAGE_DATE" --target "$COVERAGE_TARGET"
+
+      - name: Build the new reporter from this revision
+        if: steps.select.outputs.count != '0'
+        run: moon build --target wasm --release
+
+      - name: Compare both reporters on identical coverage inputs
+        if: steps.select.outputs.count != '0'
+        run: |
+          moon run scripts/core-coverage-diff.mbtx --target native -- run \
+            --core "$GITHUB_WORKSPACE/core" --output "$GITHUB_WORKSPACE/coverage-diff" \
+            --target "$COVERAGE_TARGET" \
+            --old-reporter "$HOME/.moon/bin/moon_cove_report" \
+            --new-reporter "$PWD/_build/wasm/release/build/moon_cove.wasm"
+
+      - name: Publish comparison summary
+        if: always()
+        run: |
+          if test -f ../coverage-diff/summary.md; then
+            cat ../coverage-diff/summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Preserve reports and diagnostic inputs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: core-coverage-${{ steps.select.outputs.date || 'incomplete' }}-${{ env.COVERAGE_TARGET }}-${{ github.run_attempt }}
+          path: coverage-diff/
+          retention-days: 14
+          if-no-files-found: warn
