@@ -6,6 +6,9 @@ It reads compiler-generated `.trace.source` metadata together with
 `moonbit_coverage_*` runtime logs. The supported trace schema is
 `MOONCOVE00000004`.
 
+See the [coverage reference](docs/coverage-guide.md) for system architecture,
+reporter configuration, CI integration, and the complete command-line reference.
+
 ## Usage
 
 Generate coverage artifacts in the target project:
@@ -17,7 +20,7 @@ moon test --enable-coverage
 Run directly from Mooncakes:
 
 ```sh
-moonx --target native moonbitlang/moon_cove@latest -f summary
+moonx --target wasm moonbitlang/moon_cove@latest -f summary
 ```
 
 Or install the root executable and run `moon_cove` from the target project root:
@@ -42,6 +45,10 @@ moon_cove -f bisect
 
 Repeated `-f` / `--format` options use the last value, matching the legacy
 reporter. For example, `-f=simp_caret -f=summary` produces a summary.
+
+For the toolchain commands `moon coverage report` and `moon coverage analyze`,
+set `MOON_COVE_REPORT_ENABLED=1` to select the bundled Wasm reporter.
+This setting does not enable test instrumentation or update the bundled reporter.
 
 File-producing formats default to:
 
@@ -83,6 +90,9 @@ instead of command-line arguments. Explicit `--service-name`,
 Coveralls uploads from GitHub Actions and CircleCI automatically include commit
 and branch metadata. Use `--coveralls-include-git-info` to include it in local
 reports or other upload environments.
+
+Automatic CI metadata and token detection apply only to `--send-to`.
+Local JSON output requires explicit metadata options.
 
 Upload reports are written to a private temporary directory and removed after
 the upload attempt. Local `-f coveralls` output is retained normally.
