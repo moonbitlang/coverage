@@ -38,7 +38,7 @@ priv struct MarshalReader {
 
 ///|
 fn MarshalReader::new(bytes : BytesView) -> MarshalReader {
-  { bytes, offset: 0, limit: bytes.length(), objects: [] }
+  { bytes, offset: 0, limit: bytes.length(), objects: [], }
 }
 
 ///|

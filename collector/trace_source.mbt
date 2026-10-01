@@ -89,7 +89,7 @@ fn decode_point(value : MarshalValue) -> TracePoint raise MarshalError {
   guard expect_block(value, 2) is [ranges, parent] else {
     raise InvalidShape("point")
   }
-  { ranges: decode_list(ranges, decode_range), parent: decode_parent(parent) }
+  { ranges: decode_list(ranges, decode_range), parent: decode_parent(parent), }
 }
 
 ///|

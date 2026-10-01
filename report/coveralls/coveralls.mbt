@@ -108,7 +108,7 @@ pub async fn[W : @io.Writer] output(
         points=file.points,
         counts=file.counts,
       )
-      source_files.push({ name: file.filename, source_digest, coverage })
+      source_files.push({ name: file.filename, source_digest, coverage, })
     }
   }
   let optional_metadata : (String) -> String? = value => {
