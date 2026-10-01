@@ -10,7 +10,7 @@ async test "output writes a complete offline HTML report" {
     let coverage : @common.Coverage = Map([
       (
         "src/a.mbt",
-        { filename: "src/a.mbt", points: [0L, 2L, 3L], counts: [4L, 1L, 0L] },
+        { filename: "src/a.mbt", points: [0L, 2L, 3L], counts: [4L, 1L, 0L], },
       ),
     ])
     @html.output(
@@ -63,8 +63,8 @@ async test "output writes multiple source files from one directory" {
     @fs.write_file(first_source, b"a\n", create_mode=CreateOrTruncate)
     @fs.write_file(second_source, b"b\n", create_mode=CreateOrTruncate)
     let coverage : @common.Coverage = Map([
-      ("src/a.mbt", { filename: "src/a.mbt", points: [0L], counts: [1L] }),
-      ("src/b.mbt", { filename: "src/b.mbt", points: [0L], counts: [0L] }),
+      ("src/a.mbt", { filename: "src/a.mbt", points: [0L], counts: [1L], }),
+      ("src/b.mbt", { filename: "src/b.mbt", points: [0L], counts: [0L], }),
     ])
     @html.output(
       to_directory=output_directory,

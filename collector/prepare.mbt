@@ -248,7 +248,7 @@ async fn prepare_rich(request : PrepareRequest) -> PreparedCoverage {
     let source_path = resolve_source(trace.filename, request.source_paths)
     let shown = display_path(source_path, base, request.absolute_paths)
     sources[shown] = @fs.read_file(source_path).binary()
-    normalized.push({ ..trace, filename: shown })
+    normalized.push({ ..trace, filename: shown, })
   }
   prepare_data(normalized, runtime, sources)
 }

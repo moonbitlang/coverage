@@ -36,7 +36,7 @@ test "prepare compiler coverage and project it to Bisect" {
 ///|
 test "reject runtime data unrelated to selected traces" {
   let traces = decode_trace_source(@base64.decode(compiler_v4_fixture))
-  try prepare_data(traces, [{ file_id: "other", hits: [] }], Map([])) catch {
+  try prepare_data(traces, [{ file_id: "other", hits: [], }], Map([])) catch {
     NoMatchingRuntimeData => ()
     _ => fail("unrelated runtime data")
   } noraise {
@@ -51,7 +51,7 @@ test "reject mismatched runtime counters" {
   try
     prepare_data(
       traces,
-      [{ file_id: trace.file_id, hits: [1L] }],
+      [{ file_id: trace.file_id, hits: [1L], }],
       Map([(trace.filename, b"source")]),
     )
   catch {
@@ -68,7 +68,10 @@ test "reject invalid parent point" {
   guard traces is [trace] && trace.points is [root, second, third] else {
     fail("fixture shape")
   }
-  let trace = { ..trace, points: [{ ..root, parent: Some(9) }, second, third] }
+  let trace = {
+    ..trace,
+    points: [{ ..root, parent: Some(9), }, second, third],
+  }
   let source =
     #|///|
     #|pub fn classify(n : Int) -> String {
@@ -77,7 +80,7 @@ test "reject invalid parent point" {
   try
     prepare_data(
       [trace],
-      [{ file_id: trace.file_id, hits: [1L, 1L, 0L] }],
+      [{ file_id: trace.file_id, hits: [1L, 1L, 0L], }],
       Map([(trace.filename, @utf8.encode(source))]),
     )
   catch {

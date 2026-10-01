@@ -27,7 +27,7 @@ async test "detailed caret follows the compiler golden output" {
     let coverage : @common.Coverage = Map([
       (
         "simple.mbt",
-        { filename: "simple.mbt", points: [59L, 116L], counts: [0L, 0L] },
+        { filename: "simple.mbt", points: [59L, 116L], counts: [0L, 0L], },
       ),
     ])
     let actual = @caret.render(
@@ -122,7 +122,7 @@ async test "simplified caret groups uncovered lines by declaration" {
     assert_eq(actual, expected)
 
     let fully_covered : @common.Coverage = Map([
-      ("simple.mbt", { filename: "simple.mbt", points: [59L], counts: [1L] }),
+      ("simple.mbt", { filename: "simple.mbt", points: [59L], counts: [1L], }),
     ])
     assert_eq(
       @caret.render(
@@ -140,7 +140,7 @@ async test "simplified caret groups uncovered lines by declaration" {
       create_mode=CreateOrTruncate,
     )
     let broken : @common.Coverage = Map([
-      ("broken.mbt", { filename: "broken.mbt", points: [0L], counts: [0L] }),
+      ("broken.mbt", { filename: "broken.mbt", points: [0L], counts: [0L], }),
     ])
     try
       @caret.render(
@@ -165,7 +165,7 @@ async test "simplified caret groups uncovered lines by declaration" {
       create_mode=CreateOrTruncate,
     )
     let outside : @common.Coverage = Map([
-      ("outside.mbt", { filename: "outside.mbt", points: [0L], counts: [0L] }),
+      ("outside.mbt", { filename: "outside.mbt", points: [0L], counts: [0L], }),
     ])
     try
       @caret.render(

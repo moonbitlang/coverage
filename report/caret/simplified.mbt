@@ -21,7 +21,7 @@ fn parse_top_levels(
   .to_array()
   .map(item => {
     let location = @syntax.Impl::loc(item)
-    { start_line: location.start.lnum, end_line: location.end.lnum }
+    { start_line: location.start.lnum, end_line: location.end.lnum, }
   })
 }
 
@@ -53,7 +53,7 @@ fn collect_blocks(
     }
     let same_block = blocks.last() is Some(block) && block.range == range
     if !same_block {
-      blocks.push({ range, uncovered: [line_index] })
+      blocks.push({ range, uncovered: [line_index], })
       uncovered_count += 1
     } else if last_uncovered + 1 != line_index {
       let block = blocks[blocks.length() - 1]

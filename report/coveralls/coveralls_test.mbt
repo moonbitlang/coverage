@@ -46,7 +46,9 @@ async fn render_one_source_report(
   parallel~ : Bool,
 ) -> Json {
   render_report(
-    Map([("sample.mbt", { filename: "sample.mbt", points: [0L], counts: [1L] })]),
+    Map([
+      ("sample.mbt", { filename: "sample.mbt", points: [0L], counts: [1L], }),
+    ]),
     ["sample.mbt"],
     service_name~,
     service_number~,
@@ -129,8 +131,8 @@ async test "output marks reports that belong to a parallel build" {
 async test "output orders source files by coverage filename" {
   let actual = render_report(
     Map([
-      ("b.mbt", { filename: "b.mbt", points: [0L], counts: [1L] }),
-      ("a.mbt", { filename: "a.mbt", points: [0L], counts: [1L] }),
+      ("b.mbt", { filename: "b.mbt", points: [0L], counts: [1L], }),
+      ("a.mbt", { filename: "a.mbt", points: [0L], counts: [1L], }),
     ]),
     ["b.mbt", "a.mbt"],
     service_name="",
@@ -160,7 +162,7 @@ async test "output orders source files by coverage filename" {
 async test "output skips unresolved source files when requested" {
   let actual = render_report(
     Map([
-      ("missing.mbt", { filename: "missing.mbt", points: [0L], counts: [1L] }),
+      ("missing.mbt", { filename: "missing.mbt", points: [0L], counts: [1L], }),
     ]),
     [],
     service_name="",

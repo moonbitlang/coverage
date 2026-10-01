@@ -48,7 +48,7 @@ fn decode_runtime_block(
     for value in values {
       hits.push(json_count(value))
     }
-    result.push({ file_id, hits })
+    result.push({ file_id, hits, })
   }
   result
 }

@@ -5,7 +5,7 @@ async test "upload execution raises when the process exits nonzero" {
   let long_stderr = "failure:" + "y".repeat(5000)
   let runner = CommandRunner((program, args, _extra_env) => {
     calls.push((program, args.copy()))
-    { exit_code: 22, stdout: long_stdout, stderr: long_stderr }
+    { exit_code: 22, stdout: long_stdout, stderr: long_stderr, }
   })
   let plan = upload_plan(Coveralls, report_file="coverage.json")
   try execute_upload_with_runner(plan, runner) catch {
@@ -47,7 +47,7 @@ async test "Git metadata is collected with an executable and argument arrays" {
   let runner = CommandRunner((program, args, _extra_env) => {
     let index = calls.length()
     calls.push((program, args.copy()))
-    { exit_code: 0, stdout: outputs[index], stderr: "" }
+    { exit_code: 0, stdout: outputs[index], stderr: "", }
   })
   let git = collect_git_info_with_runner(runner)
   assert_eq(git.head.id, "deadbeef")
@@ -71,7 +71,7 @@ async test "Codecov upload passes its token only through the child environment" 
   let calls : Array[(String, Array[String], Map[String, String])] = []
   let runner = CommandRunner((program, args, extra_env) => {
     calls.push((program, args.copy(), extra_env.copy()))
-    { exit_code: 0, stdout: "uploaded", stderr: "" }
+    { exit_code: 0, stdout: "uploaded", stderr: "", }
   })
   upload_with_runner(
     Codecov,
