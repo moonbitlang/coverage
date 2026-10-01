@@ -1,9 +1,6 @@
 import {
   "moonbitlang/moon_cove/common",
   "moonbitlang/moon_cove/report",
-  "moonbitlang/core/json",
-  "moonbitlang/core/int64",
-  "moonbitlang/core/string",
   "moonbitlang/async",
   "moonbitlang/async/fs",
   "moonbitlang/async/io",
@@ -18,5 +15,10 @@ import {
   "moonbitlang/core/json",
   "moonbitlang/x/path",
 } for "test"
+
+import {
+  "moonbitlang/core/int64",
+  "moonbitlang/core/json",
+} for "wbtest"
 
 supported_targets = "wasm+native"
