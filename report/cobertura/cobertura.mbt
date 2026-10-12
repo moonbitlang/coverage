@@ -149,19 +149,19 @@ async fn build_report(
       let lines = line_counts
         .mapi((index, hits) => {
           if hits is Some(hits) {
-            Some(CoberturaLine::{ number: index + 1, hits })
+            Some(CoberturaLine::{ number: index + 1, hits, })
           } else {
             None
           }
         })
         .filter_map(line => line)
-      classes.push({ name: file.filename, stats, lines })
+      classes.push({ name: file.filename, stats, lines, })
     }
   }
   {
     stats: global_stats,
     sources: ["."],
-    packages: [{ name: ".", stats: global_stats, classes }],
+    packages: [{ name: ".", stats: global_stats, classes, }],
   }
 }
 

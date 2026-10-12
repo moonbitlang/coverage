@@ -72,7 +72,7 @@ fn process_runner() -> CommandRunner {
       args,
       extra_env~,
     )
-    { exit_code, stdout: stdout.text(), stderr: stderr.text() }
+    { exit_code, stdout: stdout.text(), stderr: stderr.text(), }
   })
 }
 

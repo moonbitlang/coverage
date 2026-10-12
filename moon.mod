@@ -11,7 +11,7 @@
 
 name = "moonbitlang/moon_cove"
 
-version = "0.3.4"
+version = "0.3.5"
 
 readme = "README.md"
 
@@ -28,6 +28,6 @@ description = "Coverage report generation from MoonBit compiler artifacts"
 import {
   "moonbitlang/async@0.22.4",
   "moonbitlang/lexer@0.3.15",
-  "moonbitlang/parser@0.3.19",
+  "moonbitlang/parser@0.4.4",
   "moonbitlang/x@0.5.1",
 }

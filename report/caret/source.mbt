@@ -27,7 +27,7 @@ async fn resolve_source(
   let data = @fs.read_file(path)
   let bytes = data.binary()
   let text = data.text()
-  Some({ bytes, text, lines: source_lines(text) })
+  Some({ bytes, text, lines: source_lines(text), })
 }
 
 ///|

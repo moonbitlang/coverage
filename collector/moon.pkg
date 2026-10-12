@@ -1,9 +1,7 @@
 import {
   "moonbitlang/moon_cove/common",
   "moonbitlang/core/encoding/utf8",
-  "moonbitlang/core/double",
   "moonbitlang/core/int",
-  "moonbitlang/core/int64",
   "moonbitlang/core/json",
   "moonbitlang/core/string",
   "moonbitlang/async/fs",

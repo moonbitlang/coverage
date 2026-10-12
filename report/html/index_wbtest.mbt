@@ -25,8 +25,8 @@ test "index page collates files into uniform package nodes" {
   assert_true(
     page.contains("<strong>66.7%</strong> · 4 / 6 points · 3 files"),
   )
-  assert_eq(page.split("class=\"tree-node package-node\"").length(), 4)
-  assert_eq(page.split("class=\"node-title package-title\"").length(), 4)
+  assert_eq(page.split("class=\"tree-node package-node\"").count(), 4)
+  assert_eq(page.split("class=\"node-title package-title\"").count(), 4)
   assert_true(page.contains(">src/</span>"))
   assert_true(page.contains(">nested/</span>"))
   assert_true(page.contains("href=\"src/nested/detail.mbt.html\""))
