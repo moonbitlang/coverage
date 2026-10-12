@@ -28,7 +28,10 @@ jobs:
           moon test scripts/core-coverage-diff.mbtx --target native
 
       - name: Check all targets
-        run: moon check --target all --warn-list +73
+        run: moon check --deny-warn --target all --warn-list +73
+
+      - name: moon fmt (no diff)
+        run: moon fmt --check
 
       - name: Test native
         run: moon test --target native
