@@ -1,5 +1,5 @@
 ///|
-fn utf8_scalar_width(first_byte : Byte) -> Int {
+fn utf8_scalar_width(first_byte : Byte) -> Int32 {
   let first_byte = first_byte.to_int()
   if first_byte < 0x80 {
     1
@@ -33,7 +33,7 @@ fn coverage_point(character : String, count : Int64) -> Html {
 
 ///|
 fn source_line_content(
-  tab_size : Int,
+  tab_size : Int32,
   line : BytesView,
   offset~ : Int64,
   points~ : ArrayView[(Int64, Int64)],
@@ -85,7 +85,7 @@ priv enum LineState {
 
 ///|
 priv struct SourceLine {
-  number : Int
+  number : Int32
   content : Array[Html]
   state : LineState
 }
@@ -131,11 +131,11 @@ fn state_of_points(points : ArrayView[(Int64, Int64)]) -> LineState {
 
 ///|
 fn source_lines(
-  tab_size : Int,
+  tab_size : Int32,
   source : BytesView,
   points : ArrayView[Int64],
   counts : ArrayView[Int64],
-) -> (Array[SourceLine], (Int, Int)) raise {
+) -> (Array[SourceLine], (Int32, Int32)) raise {
   let indexed_points = points.mapi((index, offset) => {
     (offset, index, counts.get(index).unwrap_or(0L))
   })
@@ -368,11 +368,11 @@ fn source_outline(
 fn render_source_page(
   title~ : String,
   theme~ : Theme,
-  tab_size~ : Int,
+  tab_size~ : Int32,
   report_path~ : String,
   source~ : BytesView,
   file~ : @common.InstrumentedFile,
-) -> (String, (Int, Int)) raise {
+) -> (String, (Int32, Int32)) raise {
   let (lines, stats) = source_lines(tab_size, source, file.points, file.counts)
   let (visited, total) = stats
   let filename = file.filename

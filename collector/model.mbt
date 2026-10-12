@@ -3,16 +3,16 @@
 priv struct SourceRange {
   package_name : String
   filename : String
-  start_line : Int
-  start_column : Int
-  end_line : Int
-  end_column : Int
+  start_line : Int32
+  start_column : Int32
+  end_line : Int32
+  end_column : Int32
 } derive(Eq)
 
 ///|
 priv struct TracePoint {
   ranges : Array[SourceRange]
-  parent : Int?
+  parent : Int32?
 } derive(Eq)
 
 ///|
@@ -33,7 +33,7 @@ priv struct RuntimeHits {
 #warnings("-unused_field")
 priv struct PreparedPoint {
   ranges : Array[SourceRange]
-  parent : Int?
+  parent : Int32?
   hits : Int64
 }
 

@@ -14,19 +14,19 @@ priv struct ResolvedSource {
 
 ///|
 priv struct TopLevelRange {
-  start_line : Int
-  end_line : Int
+  start_line : Int32
+  end_line : Int32
 } derive(Eq)
 
 ///|
 priv struct SimplifiedBlock {
   range : TopLevelRange
-  uncovered : Array[Int]
+  uncovered : Array[Int32]
 }
 
 ///|
 priv struct SimplifiedFile {
   filename : String
-  uncovered_count : Int
+  uncovered_count : Int32
   blocks : Array[String]
 }

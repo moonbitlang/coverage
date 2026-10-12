@@ -21,10 +21,10 @@ struct Source {
 ///|
 struct Package {
   name : String
-  mut oldFiles : Int
-  mut newFiles : Int
-  mut differences : Int
-  mut advisory : Int
+  mut oldFiles : Int32
+  mut newFiles : Int32
+  mut differences : Int32
+  mut advisory : Int32
 } derive(ToJson)
 
 ///|
@@ -42,7 +42,7 @@ fn count(value : Json) -> Int64? raise {
     Number(n, repr~) => {
       // Preserve integer tokens exactly, including values above 2^53.
       let integer = match repr {
-        Some(text) if text.iter().all(c => c is ('0'..='9')) =>
+        Some(text) if text.iter().all(c => c is ('0'..<='9')) =>
           @string.parse_int64(text)
         _ if n >= 0 && n <= 9007199254740991.0 && n.to_int64().to_double() == n =>
           n.to_int64()
@@ -204,7 +204,7 @@ async fn compare(old : Json, new : Json, root : String, sha : String) -> Json {
     let olds = old_files.get(name).unwrap_or([])
     let news = new_files.get(name).unwrap_or([])
     let pkg = package_of(root, name)
-    fn add(kind : String, old : Json, new : Json, line : Int?) {
+    fn add(kind : String, old : Json, new : Json, line : Int32?) {
       let advisory = pkg == "moonbitlang/core/coverage" &&
         kind is ("presence" | "length" | "line" | "duplicate-source")
       let fields : Map[String, Json] = {
@@ -248,7 +248,7 @@ async fn compare(old : Json, new : Json, root : String, sha : String) -> Json {
     if old.counts.length() != new.counts.length() {
       add("length", Json(old.counts.length()), Json(new.counts.length()), None)
     }
-    fn value_at(source : Source, i : Int) -> Json {
+    fn value_at(source : Source, i : Int32) -> Json {
       match source.counts.get(i) {
         None => "absent"
         Some(None) => Json::null()
@@ -317,7 +317,7 @@ fn source(name : String, coverage : Array[Json]) -> Json {
 }
 
 ///|
-fn report(files : Array[Json], remotes? : Json = []) -> Json {
+fn report(files : Array[Json], remotes~ : Json = []) -> Json {
   {
     "git": {
       "head": { "id": "revision" },

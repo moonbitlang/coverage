@@ -1,8 +1,8 @@
 ///|
 fn detailed_block(
   lines : ArrayView[String],
-  line : Int,
-  around : Int,
+  line : Int32,
+  around : Int32,
 ) -> String {
   let length = lines.length()
   let left_limit = line - around

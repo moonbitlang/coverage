@@ -2,16 +2,16 @@
 priv struct SortedSummaryPoint {
   file_id : String
   filename : String
-  point_index : Int
+  point_index : Int32
   hits : Int64
 }
 
 ///|
 fn position_before(
-  left_line : Int,
-  left_column : Int,
-  right_line : Int,
-  right_column : Int,
+  left_line : Int32,
+  left_column : Int32,
+  right_line : Int32,
+  right_column : Int32,
 ) -> Bool {
   left_line < right_line ||
   (left_line == right_line && left_column < right_column)
@@ -63,7 +63,7 @@ fn logical_source_path(range : SourceRange) -> String {
 }
 
 ///|
-fn summary_line_starts(source : BytesView) -> Array[Int] {
+fn summary_line_starts(source : BytesView) -> Array[Int32] {
   let starts = [0]
   for index, byte in source {
     if byte == b'\n' {
@@ -80,9 +80,9 @@ fn summary_line_starts(source : BytesView) -> Array[Int] {
 fn write_source_lines(
   output : StringBuilder,
   source : Bytes,
-  starts : ArrayView[Int],
-  start_line : Int,
-  end_line : Int,
+  starts : ArrayView[Int32],
+  start_line : Int32,
+  end_line : Int32,
   prefix : String,
 ) -> Unit {
   let line_count = starts.length() - 1
@@ -101,14 +101,14 @@ fn write_source_lines(
 }
 
 ///|
-fn write_spaces(output : StringBuilder, count : Int) -> Unit {
+fn write_spaces(output : StringBuilder, count : Int32) -> Unit {
   for _ in 0..<count.max(0) {
     output.write_char(' ')
   }
 }
 
 ///|
-fn write_carets(output : StringBuilder, count : Int) -> Unit {
+fn write_carets(output : StringBuilder, count : Int32) -> Unit {
   for _ in 0..<count.max(1) {
     output.write_char('^')
   }
@@ -120,7 +120,7 @@ fn write_point_context(
   output : StringBuilder,
   file : PreparedFile,
   range : SourceRange,
-  starts : ArrayView[Int],
+  starts : ArrayView[Int32],
 ) -> Unit {
   let line_count = starts.length() - 1
   guard line_count > 0 else { return }
@@ -193,7 +193,7 @@ fn write_point_context(
 /// Render the hottest coverage points with their surrounding source context.
 pub fn PreparedCoverage::sorted_summary(
   self : PreparedCoverage,
-  limit? : Int = 50,
+  limit~ : Int32 = 50,
 ) -> String {
   guard limit > 0 else { return "" }
   let selected = []
@@ -237,7 +237,7 @@ pub fn PreparedCoverage::sorted_summary(
     }
   })
   let output = StringBuilder()
-  let starts_cache : Map[String, Array[Int]] = Map([])
+  let starts_cache : Map[String, Array[Int32]] = Map([])
   let count = selected.length().min(limit)
   for index in 0..<count {
     let selected_point = selected[index]

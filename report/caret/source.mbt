@@ -31,7 +31,7 @@ async fn resolve_source(
 }
 
 ///|
-fn padded(value : Int, width : Int) -> String {
+fn padded(value : Int32, width : Int32) -> String {
   let value = value.to_string()
   " ".repeat(width - value.length()) + value
 }

@@ -30,7 +30,7 @@ async fn write_assets(to_directory : String) -> Unit {
 pub async fn output(
   to_directory~ : String,
   title~ : String,
-  tab_size~ : Int,
+  tab_size~ : Int32,
   theme~ : Theme,
   coverage~ : @common.Coverage,
   source_paths~ : ArrayView[String],

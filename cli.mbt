@@ -125,7 +125,7 @@ fn cli_optional(matches : @argparse.Matches, name : String) -> String? {
 fn cli_flag(
   matches : @argparse.Matches,
   name : String,
-  default? : Bool = false,
+  default~ : Bool = false,
 ) -> Bool {
   matches.flags.get(name).unwrap_or(default)
 }
@@ -177,7 +177,7 @@ fn output_path(
 ///|
 async fn run_compiler_report(
   matches : @argparse.Matches,
-  current_directory? : String = ".",
+  current_directory~ : String = ".",
 ) -> Unit {
   // Preserve the legacy reporter's last-format-wins behavior.
   guard cli_values(matches, "format") is [.., value] else {

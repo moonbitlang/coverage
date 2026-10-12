@@ -3,22 +3,22 @@ priv struct IndexFile {
   filename : String
   report_path : String
   href : String
-  stats : (Int, Int)
+  stats : (Int32, Int32)
 }
 
 ///|
 priv enum IndexElement {
   File(IndexFile)
-  Directory(String, Array[IndexElement], (Int, Int))
+  Directory(String, Array[IndexElement], (Int32, Int32))
 }
 
 ///|
-fn add_stats(left : (Int, Int), right : (Int, Int)) -> (Int, Int) {
+fn add_stats(left : (Int32, Int32), right : (Int32, Int32)) -> (Int32, Int32) {
   (left.0 + right.0, left.1 + right.1)
 }
 
 ///|
-fn sum_file_stats(files : ArrayView[IndexFile]) -> (Int, Int) {
+fn sum_file_stats(files : ArrayView[IndexFile]) -> (Int32, Int32) {
   files.fold(init=(0, 0), (stats, file) => add_stats(stats, file.stats))
 }
 
@@ -46,7 +46,7 @@ fn immediate_child_directory(
 fn collate_directory(
   directory : @path.Path,
   files : ArrayView[IndexFile],
-) -> (Array[IndexElement], (Int, Int)) {
+) -> (Array[IndexElement], (Int32, Int32)) {
   let immediate_files = []
   let child_files : Map[String, Array[IndexFile]] = Map([])
   for file in files {
@@ -80,12 +80,14 @@ fn collate_directory(
 }
 
 ///|
-fn collate(files : ArrayView[IndexFile]) -> (Array[IndexElement], (Int, Int)) {
+fn collate(
+  files : ArrayView[IndexFile],
+) -> (Array[IndexElement], (Int32, Int32)) {
   collate_directory(Path("."), files)
 }
 
 ///|
-fn file_state(stats : (Int, Int)) -> String {
+fn file_state(stats : (Int32, Int32)) -> String {
   if stats.1 == 0 || stats.0 == stats.1 {
     "covered"
   } else if stats.0 == 0 {
@@ -139,7 +141,7 @@ fn file_list(elements : ArrayView[IndexElement]) -> Html {
 }
 
 ///|
-fn directory_nodes(elements : ArrayView[IndexElement], level : Int) -> Html {
+fn directory_nodes(elements : ArrayView[IndexElement], level : Int32) -> Html {
   let directories = elements.filter_map(element => {
     match element {
       File(_) => None
@@ -158,7 +160,7 @@ fn directory_nodes(elements : ArrayView[IndexElement], level : Int) -> Html {
 }
 
 ///|
-fn index_directory_node(element : IndexElement, level : Int) -> Html {
+fn index_directory_node(element : IndexElement, level : Int32) -> Html {
   match element {
     File(_) => Fragment([])
     Directory(path, elements, (visited, total)) => {

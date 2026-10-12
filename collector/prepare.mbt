@@ -7,8 +7,8 @@ priv suberror PrepareError {
   InvalidRuntimeLog(String, String)
   DuplicateFileId(String)
   MissingSource(String)
-  CountMismatch(String, Int, Int)
-  InvalidParent(String, Int, Int)
+  CountMismatch(String, Int32, Int32)
+  InvalidParent(String, Int32, Int32)
   InvalidRange(String)
 } derive(Debug)
 
@@ -39,7 +39,7 @@ impl Show for PrepareError with fn output(self, logger) {
 }
 
 ///|
-fn line_starts(source : BytesView) -> Array[Int] {
+fn line_starts(source : BytesView) -> Array[Int32] {
   let starts = [0]
   for index, byte in source {
     if byte == b'\n' {
@@ -56,7 +56,7 @@ fn suffix_match(value : String, pattern : String) -> Bool {
 
 ///|
 fn byte_offset(
-  starts : ArrayView[Int],
+  starts : ArrayView[Int32],
   range : SourceRange,
   filename : String,
 ) -> Int64 raise PrepareError {

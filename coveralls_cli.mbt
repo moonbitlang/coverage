@@ -12,7 +12,7 @@ fn parse_send_target(
 ///|
 async fn coveralls_git(
   matches : @argparse.Matches,
-  automatic? : Bool = false,
+  automatic~ : Bool = false,
 ) -> @coveralls.GitInfo? {
   if automatic || cli_flag(matches, "coveralls-include-git-info") {
     Some(@coveralls.collect_git_info())

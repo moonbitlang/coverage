@@ -36,7 +36,11 @@ test "decode compiler v4 trace source" {
 
 ///|
 test "reject a source range whose position filenames differ" {
-  let position : (String, Int, Int) -> MarshalValue = (filename, line, column) => {
+  let position : (String, Int32, Int32) -> MarshalValue = (
+    filename,
+    line,
+    column,
+  ) => {
     Block(0, [String(filename), Int(line.to_int64()), Int(column.to_int64())])
   }
   try

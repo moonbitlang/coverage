@@ -4,7 +4,7 @@ let trace_magic = b"MOONCOVE00000004"
 ///|
 fn expect_block(
   value : MarshalValue,
-  size : Int,
+  size : Int32,
 ) -> Array[MarshalValue] raise MarshalError {
   guard value is Block(0, fields) && fields.length() == size else {
     raise InvalidShape("block")
@@ -19,7 +19,7 @@ fn expect_string(value : MarshalValue) -> String raise MarshalError {
 }
 
 ///|
-fn expect_int(value : MarshalValue) -> Int raise MarshalError {
+fn expect_int(value : MarshalValue) -> Int32 raise MarshalError {
   guard value is Int(value) && value >= 0L && value <= @int.MAX_VALUE.to_int64() else {
     raise InvalidShape("int")
   }
@@ -48,7 +48,7 @@ fn[A] decode_list(
 ///|
 fn decode_position(
   value : MarshalValue,
-) -> (String, Int, Int) raise MarshalError {
+) -> (String, Int32, Int32) raise MarshalError {
   guard expect_block(value, 3) is [filename, line, column] else {
     raise InvalidShape("position")
   }
@@ -76,7 +76,7 @@ fn decode_range(value : MarshalValue) -> SourceRange raise MarshalError {
 }
 
 ///|
-fn decode_parent(value : MarshalValue) -> Int? raise MarshalError {
+fn decode_parent(value : MarshalValue) -> Int32? raise MarshalError {
   match value {
     Int(0L) => None
     Block(0, [index]) => Some(expect_int(index))

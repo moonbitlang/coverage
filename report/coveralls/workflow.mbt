@@ -207,7 +207,7 @@ pub fn resolve_upload_metadata(
 fn upload_plan(
   target : SendTarget,
   report_file~ : String,
-  codecov_token? : String = "",
+  codecov_token~ : String = "",
 ) -> UploadPlan {
   match target {
     Coveralls =>
