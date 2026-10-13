@@ -30,10 +30,10 @@ struct Selection {
 ///|
 struct Package {
   name : String
-  oldFiles : Int
-  newFiles : Int
-  differences : Int
-  advisory : Int
+  oldFiles : Int32
+  newFiles : Int32
+  differences : Int32
+  advisory : Int32
 } derive(FromJson, ToJson)
 
 ///|
@@ -50,7 +50,7 @@ struct CommitResult {
   mut packages : Array[Package]
   mut differences : Array[Json]
   mut error : String?
-  mut seconds : Int
+  mut seconds : Int32
 } derive(ToJson)
 
 ///|
@@ -68,7 +68,7 @@ fn pending(sha : String) -> CommitResult {
 ///|
 fn date_window(
   date : String,
-  now? : UInt64 = @env.now(),
+  now~ : UInt64 = @env.now(),
 ) -> (@time.PlainDate, Int64) raise {
   let date = if date == "" {
     @time.PlainDate::from_unix_day(
@@ -165,7 +165,7 @@ async fn command(
   args : Array[String],
   cwd : String,
   log : String,
-  timeout? : Int = 300000,
+  timeout~ : Int32 = 300000,
 ) -> Unit {
   @fs.write_file(
     log,
@@ -430,7 +430,7 @@ async fn run_comparisons(
   old : String,
   new : String,
   comparator : String,
-) -> Int {
+) -> Int32 {
   guard !@fs.exists("\{output}/results.json") else {
     fail("Use a fresh output directory for each run")
   }

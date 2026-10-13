@@ -1,40 +1,40 @@
 ///|
 priv struct CoberturaLine {
-  number : Int
+  number : Int32
   hits : Int64
 }
 
 ///|
 priv struct CoberturaClass {
   name : String
-  stats : (Int, Int)
+  stats : (Int32, Int32)
   lines : Array[CoberturaLine]
 }
 
 ///|
 priv struct CoberturaPackage {
   name : String
-  stats : (Int, Int)
+  stats : (Int32, Int32)
   classes : Array[CoberturaClass]
 }
 
 ///|
 priv struct CoberturaReport {
-  stats : (Int, Int)
+  stats : (Int32, Int32)
   sources : Array[String]
   packages : Array[CoberturaPackage]
 }
 
 ///|
-fn add_stats(left : (Int, Int), right : (Int, Int)) -> (Int, Int) {
+fn add_stats(left : (Int32, Int32), right : (Int32, Int32)) -> (Int32, Int32) {
   (left.0 + right.0, left.1 + right.1)
 }
 
 ///|
 fn update_counts(
-  counts : (Int, Int),
+  counts : (Int32, Int32),
   line_counts : ArrayView[Int64?],
-) -> (Int, Int) {
+) -> (Int32, Int32) {
   line_counts.fold(init=counts, (counts, count) => {
     match count {
       None => counts
@@ -45,7 +45,7 @@ fn update_counts(
 }
 
 ///|
-fn line_rate(stats : (Int, Int)) -> String {
+fn line_rate(stats : (Int32, Int32)) -> String {
   let (visited, total) = stats
   guard total != 0 else { "nan" }
   let denominator = total.to_int64()

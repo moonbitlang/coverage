@@ -30,7 +30,7 @@ fn collect_blocks(
   filename : String,
   counts : ArrayView[Int64?],
   ranges : ArrayView[TopLevelRange],
-) -> (Int, Array[SimplifiedBlock]) raise {
+) -> (Int32, Array[SimplifiedBlock]) raise {
   let blocks : Array[SimplifiedBlock] = []
   let mut uncovered_count = 0
   let mut last_uncovered = -1

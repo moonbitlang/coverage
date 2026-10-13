@@ -8,7 +8,7 @@ async fn render_report(
   service_pull_request~ : String,
   repo_token~ : String,
   parallel~ : Bool,
-  ignore_missing_files? : Bool = false,
+  ignore_missing_files~ : Bool = false,
 ) -> Json {
   @async.with_task_group(group => {
     let root = @fs.tmpdir(prefix="moon-cov-coveralls-")

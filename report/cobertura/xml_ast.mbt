@@ -79,7 +79,7 @@ fn XmlAttribute::output(self : XmlAttribute, logger : &Logger) -> Unit {
 }
 
 ///|
-fn Xml::output_at(self : Xml, logger : &Logger, depth : Int) -> Unit {
+fn Xml::output_at(self : Xml, logger : &Logger, depth : Int32) -> Unit {
   match self {
     Declaration => logger <+ "<?xml version=\"1.0\" ?>"
     Text(text) => write_xml_text(logger, text)

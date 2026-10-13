@@ -3,7 +3,7 @@ priv suberror CommandError {
   SpawnFailed(program~ : String, reason~ : String)
   NonZeroExit(
     program~ : String,
-    exit_code~ : Int,
+    exit_code~ : Int32,
     stdout~ : String,
     stderr~ : String
   )
@@ -43,7 +43,7 @@ fn bounded_command_output(value : String) -> String {
 
 ///|
 priv struct CommandResult {
-  exit_code : Int
+  exit_code : Int32
   stdout : String
   stderr : String
 }
@@ -81,7 +81,7 @@ async fn run_checked(
   runner : CommandRunner,
   program : String,
   args : Array[String],
-  extra_env? : Map[String, String] = {},
+  extra_env~ : Map[String, String] = {},
 ) -> CommandResult {
   let result = runner.run(program, args, extra_env) catch {
     error if @async.is_being_cancelled() => raise error
@@ -110,7 +110,7 @@ async fn execute_upload_with_runner(
 async fn upload_with_runner(
   target : SendTarget,
   report_file~ : String,
-  codecov_token? : String = "",
+  codecov_token~ : String = "",
   runner~ : CommandRunner,
 ) -> Unit {
   execute_upload_with_runner(
@@ -129,7 +129,7 @@ async fn upload_with_runner(
 pub async fn upload(
   target : SendTarget,
   report_file~ : String,
-  codecov_token? : String = "",
+  codecov_token~ : String = "",
 ) -> Unit {
   upload_with_runner(
     target,

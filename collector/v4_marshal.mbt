@@ -2,8 +2,8 @@
 priv suberror MarshalError {
   Truncated
   InvalidHeader
-  UnsupportedCode(Int)
-  InvalidSharedReference(Int)
+  UnsupportedCode(Int32)
+  InvalidSharedReference(Int32)
   InvalidShape(String)
 } derive(Debug)
 
@@ -25,14 +25,14 @@ impl Show for MarshalError with fn output(self, logger) {
 priv enum MarshalValue {
   Int(Int64)
   String(String)
-  Block(Int, Array[MarshalValue])
+  Block(Int32, Array[MarshalValue])
 } derive(Debug)
 
 ///|
 priv struct MarshalReader {
   bytes : BytesView
-  mut offset : Int
-  mut limit : Int
+  mut offset : Int32
+  mut limit : Int32
   objects : Array[MarshalValue?]
 }
 
@@ -42,7 +42,7 @@ fn MarshalReader::new(bytes : BytesView) -> MarshalReader {
 }
 
 ///|
-fn MarshalReader::read_byte(self : MarshalReader) -> Int raise MarshalError {
+fn MarshalReader::read_byte(self : MarshalReader) -> Int32 raise MarshalError {
   guard self.offset < self.limit else { raise Truncated }
   let byte = self.bytes[self.offset].to_int()
   self.offset += 1
@@ -52,7 +52,7 @@ fn MarshalReader::read_byte(self : MarshalReader) -> Int raise MarshalError {
 ///|
 fn MarshalReader::read_uint(
   self : MarshalReader,
-  width : Int,
+  width : Int32,
 ) -> UInt64 raise MarshalError {
   let mut value = 0UL
   for _ in 0..<width {
@@ -64,8 +64,8 @@ fn MarshalReader::read_uint(
 ///|
 fn MarshalReader::read_length(
   self : MarshalReader,
-  width : Int,
-) -> Int raise MarshalError {
+  width : Int32,
+) -> Int32 raise MarshalError {
   let value = self.read_uint(width)
   guard value <= @int.MAX_VALUE.to_uint64() else { raise InvalidHeader }
   value.to_int()
@@ -74,7 +74,7 @@ fn MarshalReader::read_length(
 ///|
 fn MarshalReader::read_signed(
   self : MarshalReader,
-  width : Int,
+  width : Int32,
 ) -> Int64 raise MarshalError {
   let value = self.read_uint(width)
   if width == 8 {
@@ -92,7 +92,7 @@ fn MarshalReader::read_signed(
 ///|
 fn MarshalReader::read_bytes(
   self : MarshalReader,
-  length : Int,
+  length : Int32,
 ) -> BytesView raise MarshalError {
   guard length >= 0 && self.offset <= self.limit - length else {
     raise Truncated
@@ -114,7 +114,7 @@ fn MarshalReader::remember(
 ///|
 fn MarshalReader::read_string(
   self : MarshalReader,
-  length : Int,
+  length : Int32,
 ) -> MarshalValue raise MarshalError {
   let value = @utf8.decode(self.read_bytes(length)) catch {
     _ => raise InvalidShape("utf8")
@@ -125,8 +125,8 @@ fn MarshalReader::read_string(
 ///|
 fn MarshalReader::read_block(
   self : MarshalReader,
-  size : Int,
-  tag : Int,
+  size : Int32,
+  tag : Int32,
 ) -> MarshalValue raise MarshalError {
   guard size > 0 else { return Block(tag, []) }
   let slot = self.objects.length()
@@ -140,7 +140,7 @@ fn MarshalReader::read_block(
 ///|
 fn MarshalReader::read_shared(
   self : MarshalReader,
-  width : Int,
+  width : Int32,
 ) -> MarshalValue raise MarshalError {
   let distance = self.read_length(width)
   let index = self.objects.length() - distance

@@ -7,7 +7,7 @@ pub(all) enum Theme {
 } derive(Debug, Eq)
 
 ///|
-fn percentage(visited : Int, total : Int) -> String {
+fn percentage(visited : Int32, total : Int32) -> String {
   guard total != 0 else { "100%" }
   let total = total.to_int64()
   let scaled = visited.to_int64() * 1000L
@@ -75,7 +75,7 @@ fn safe_report_path(filename : String) -> String {
 
 ///|
 fn write_hex_byte(output : @buffer.Buffer, byte : Byte) -> Unit {
-  let write_nibble : (Int) -> Unit = nibble => {
+  let write_nibble : (Int32) -> Unit = nibble => {
     let ascii = if nibble < 10 {
       b'0'.to_int() + nibble
     } else {
