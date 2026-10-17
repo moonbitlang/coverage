@@ -1,9 +1,9 @@
 name: Core coverage differential
 
 on:
-  schedule:
-    # 00:37 Asia/Shanghai; check the previous complete calendar day.
-    - cron: '37 16 * * *'
+  # schedule:
+  #   # 00:37 Asia/Shanghai; check the previous complete calendar day.
+  #   - cron: '37 16 * * *'
   workflow_dispatch:
     inputs:
       date:
