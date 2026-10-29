@@ -7,7 +7,7 @@ import {
 }
 
 // Values
-pub async fn output(to_directory~ : String, title~ : String, tab_size~ : Int, theme~ : Theme, coverage~ : Map[String, @common.InstrumentedFile], source_paths~ : ArrayView[String], ignore_missing_files~ : Bool) -> Unit
+pub async fn output(to_directory~ : String, title~ : String, tab_size~ : Int32, theme~ : Theme, coverage~ : Map[String, @common.InstrumentedFile], source_paths~ : ArrayView[String], ignore_missing_files~ : Bool) -> Unit
 
 // Errors
 
